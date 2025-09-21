@@ -447,6 +447,23 @@ export default function NovaPropostaPage() {
       console.log(`   Proposta ID: ${propostaId}`)
       console.log(`   Email: ${emailCliente}`)
       console.log(`   Nome: ${nomeCliente}`)
+      console.log(`   Corretor completo:`, corretor)
+      console.log(`   Corretor.nome: "${corretor?.nome}"`)
+      console.log(`   Corretor existe:`, !!corretor)
+
+      // Verificar se o corretor existe e tem nome
+      if (!corretor) {
+        console.error("❌ ERRO: Corretor não encontrado!")
+        toast.error("Erro: Corretor não encontrado. Faça login novamente.")
+        return false
+      }
+
+      if (!corretor.nome || corretor.nome.trim() === "") {
+        console.error("❌ ERRO: Nome do corretor está vazio!")
+        console.log("Corretor completo:", corretor)
+        toast.error("Erro: Nome do corretor não encontrado. Verifique seu perfil.")
+        return false
+      }
 
       // Criar link único para o cliente completar a proposta
       const linkProposta = `${window.location.origin}/proposta-digital/completar/${propostaId}`

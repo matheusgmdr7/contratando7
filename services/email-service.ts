@@ -330,9 +330,16 @@ export async function enviarEmailPropostaCliente(
     const ambiente = detectarAmbiente()
     console.log(`🌍 Ambiente detectado: ${ambiente.tipo} (${ambiente.hostname})`)
 
+    // Validar se o nome do corretor foi fornecido
+    if (!nomeCorretor || nomeCorretor.trim() === "") {
+      console.error("❌ ERRO: Nome do corretor não foi fornecido!")
+      console.log("   nomeCorretor recebido:", nomeCorretor)
+      throw new Error("Nome do corretor é obrigatório para envio de email")
+    }
+
     // Em desenvolvimento, sempre simular
     if (ambiente.tipo === "desenvolvimento") {
-      const sucesso = await simularEnvioEmail(emailCliente, nomeCliente, linkProposta, nomeCorretor)
+      const sucesso = await simularEnvioEmail(emailCliente, nomeCliente, linkProposta, nomeCorretor.trim())
       console.log(`🔧 Simulação concluída com sucesso: ${sucesso}`)
       return sucesso
     }
@@ -353,7 +360,7 @@ export async function enviarEmailPropostaCliente(
       to: emailCliente,
       nome: nomeCliente,
       subject: "Complete sua proposta de plano de saúde",
-      corretor: nomeCorretor || "Sistema ContratandoPlanos",
+      corretor: nomeCorretor.trim(),
       link: linkCorreto,
       tipo: "proposta_cliente",
       timestamp: new Date().toISOString(),

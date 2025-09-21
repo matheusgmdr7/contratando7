@@ -31,7 +31,22 @@ serve(async (req) => {
     }
 
     const { to, nome, subject, tipo, corretor, link } = await req.json()
-    console.log("📨 Dados recebidos:", { to, nome, subject, tipo, corretor })
+    
+    console.log("📧 DADOS RECEBIDOS NA EDGE FUNCTION:")
+    console.log("=".repeat(50))
+    console.log(`   Email destinatário: "${to}"`)
+    console.log(`   Assunto: "${subject}"`)
+    console.log(`   Nome cliente: "${nome}"`)
+    console.log(`   Nome corretor: "${corretor}"`)
+    console.log(`   Link: "${link}"`)
+    console.log(`   Tipo: "${tipo}"`)
+    console.log("=".repeat(50))
+
+    // Verificar se o nome do corretor está vazio ou undefined
+    if (!corretor || corretor.trim() === "") {
+      console.warn("⚠️ ATENÇÃO: Nome do corretor está vazio ou undefined!")
+      console.log("Payload completo:", JSON.stringify({ to, nome, subject, tipo, corretor, link }, null, 2))
+    }
 
     // Preparar email baseado no tipo
     let htmlContent = ""
