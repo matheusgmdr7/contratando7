@@ -481,83 +481,50 @@ export default function CadastradoPage() {
     })
   }
 
-  // NOVA FUNÇÃO SIMPLIFICADA
-  async function salvarEdicao() {
-    console.log("🚀 NOVA FUNÇÃO SALVAR EDIÇÃO EXECUTADA")
-    alert("🚀 NOVA FUNÇÃO SALVAR EDIÇÃO EXECUTADA")
+  // FUNÇÃO DIRETA E SIMPLES
+  const salvarEdicao = async () => {
+    alert("FUNÇÃO SALVAR CHAMADA - TESTE DIRETO")
+    console.log("FUNÇÃO SALVAR CHAMADA - TESTE DIRETO")
     
     try {
-      const tabelaOrigem = propostaDetalhada?.origem === "propostas" ? "propostas" : "propostas_corretores"
-      console.log("Tabela de origem:", tabelaOrigem)
-      
-      // SOLUÇÃO ULTRA SIMPLES: Apenas campos básicos para propostas_corretores
-      let dadosLimpos = {}
-      
-      if (tabelaOrigem === "propostas_corretores") {
-        // APENAS campos que existem na tabela propostas_corretores
-        if (editData.nome) dadosLimpos.nome = editData.nome
-        if (editData.email) dadosLimpos.email = editData.email
-        if (editData.telefone) dadosLimpos.telefone = editData.telefone
-        if (editData.cpf) dadosLimpos.cpf = editData.cpf
-        if (editData.rg) dadosLimpos.rg = editData.rg
-        if (editData.orgao_emissor) dadosLimpos.orgao_emissor = editData.orgao_emissor
-        if (editData.cns) dadosLimpos.cns = editData.cns
-        if (editData.data_nascimento) dadosLimpos.data_nascimento = editData.data_nascimento
-        if (editData.sexo) dadosLimpos.sexo = editData.sexo
-        if (editData.estado_civil) dadosLimpos.estado_civil = editData.estado_civil
-        if (editData.uf_nascimento) dadosLimpos.uf_nascimento = editData.uf_nascimento
-        if (editData.nome_mae) dadosLimpos.nome_mae = editData.nome_mae
-      } else {
-        // Para propostas, usar todos os dados
-        dadosLimpos = { ...editData }
+      // SOLUÇÃO DIRETA: Apenas campos básicos para propostas_corretores
+      const dadosBasicos = {
+        nome: editData.nome || "",
+        email: editData.email || "",
+        telefone: editData.telefone || "",
+        cpf: editData.cpf || "",
+        rg: editData.rg || "",
+        orgao_emissor: editData.orgao_emissor || "",
+        cns: editData.cns || "",
+        data_nascimento: editData.data_nascimento || "",
+        sexo: editData.sexo || "",
+        estado_civil: editData.estado_civil || "",
+        uf_nascimento: editData.uf_nascimento || "",
+        nome_mae: editData.nome_mae || ""
       }
       
-      console.log("Dados limpos para envio:", dadosLimpos)
-      console.log("Campos que serão enviados:", Object.keys(dadosLimpos))
+      console.log("Dados básicos:", dadosBasicos)
       
-      if (Object.keys(dadosLimpos).length === 0) {
-        toast.error("Nenhum dado válido para salvar")
-        return
-      }
-      
-      if (!propostaDetalhada?.id) {
-        toast.error("ID da proposta não encontrado")
-        return
-      }
-      
-      console.log("Executando update...")
-      const { data: updateResult, error } = await supabase
-        .from(tabelaOrigem)
-        .update(dadosLimpos)
+      const { data, error } = await supabase
+        .from("propostas_corretores")
+        .update(dadosBasicos)
         .eq("id", propostaDetalhada.id)
         .select()
 
       if (error) {
         console.error("❌ Erro do Supabase:", error)
-        console.error("❌ Detalhes do erro:", {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code
-        })
-        throw error
+        toast.error(`Erro ao salvar: ${error.message}`)
+        return
       }
 
-      console.log("✅ Update result:", updateResult)
-
-      console.log("✅ Update executado com sucesso!")
+      console.log("✅ Dados salvos com sucesso:", data)
       toast.success("Dados atualizados com sucesso!")
       setEditMode(false)
-      
-      // Atualizar os dados da proposta detalhada
-      setPropostaDetalhada({ ...propostaDetalhada, ...editData })
-      
-      // Recarregar a lista de propostas
       carregarPropostas()
       
     } catch (error) {
-      console.error("❌ Erro ao salvar:", error)
-      toast.error(`Erro ao salvar os dados: ${error.message || "Erro desconhecido"}`)
+      console.error("❌ Erro geral:", error)
+      toast.error(`Erro ao salvar: ${error.message}`)
     }
   }
 
