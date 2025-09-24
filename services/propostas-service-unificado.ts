@@ -188,7 +188,7 @@ export async function buscarPropostaCompleta(id: string): Promise<PropostaUnific
     }
 
     // Determinar origem baseado na presença do corretor_id
-    const origem = proposta.corretor_id ? "propostas_corretores" : "propostas"
+    const origem = proposta.corretor_id ? "corretor" : "admin"
 
     return {
       ...proposta,
