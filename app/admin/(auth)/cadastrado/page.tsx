@@ -483,8 +483,8 @@ export default function CadastradoPage() {
 
   // FUNÇÃO ULTRA SIMPLES - APENAS CAMPOS ESSENCIAIS
   const salvarEdicao = async () => {
-    alert("FUNÇÃO SALVAR CHAMADA - ULTRA SIMPLES")
-    console.log("FUNÇÃO SALVAR CHAMADA - ULTRA SIMPLES")
+    console.log("🔧 FUNÇÃO SALVAR - VERSÃO CORRIGIDA")
+    console.log("🔧 Cache limpo, servidor reiniciado")
     
     try {
       // APENAS os campos mais básicos que certamente existem
@@ -497,10 +497,16 @@ export default function CadastradoPage() {
       console.log("Dados mínimos:", dadosMinimos)
       console.log("ID da proposta:", propostaDetalhada.id)
       console.log("Origem da proposta:", propostaDetalhada.origem)
+      console.log("Tipo da origem:", typeof propostaDetalhada.origem)
+      console.log("Origem === 'corretor':", propostaDetalhada.origem === 'corretor')
+      console.log("Origem === 'admin':", propostaDetalhada.origem === 'admin')
+      console.log("🔍 PROPOSTA DETALHADA COMPLETA:", propostaDetalhada)
+      console.log("🔍 CORRETOR_ID:", propostaDetalhada.corretor_id)
       
       // Usar tabela correta baseada na origem
       const tabelaDestino = propostaDetalhada.origem === 'corretor' ? 'propostas_corretores' : 'propostas'
       console.log("📊 Usando tabela:", tabelaDestino)
+      console.log("📊 Decisão da tabela:", `origem='${propostaDetalhada.origem}' -> tabela='${tabelaDestino}'`)
       
       // Primeiro, verificar se o registro existe
       console.log("🔍 Verificando se o registro existe...")
