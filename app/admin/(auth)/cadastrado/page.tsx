@@ -495,6 +495,56 @@ export default function CadastradoPage() {
         toast.error("Nenhum dado para salvar")
         return
       }
+
+      // Limpar dados vazios e validar campos
+      const dadosLimpos = Object.fromEntries(
+        Object.entries(editData).filter(([key, value]) => {
+          if (value === null || value === undefined || value === "") {
+            console.log(`⚠️ Removendo campo vazio: ${key} = ${value}`)
+            return false
+          }
+          
+          // Validações específicas para campos problemáticos
+          if (key === 'cpf' && typeof value === 'string') {
+            // Remover formatação do CPF se necessário
+            const cpfLimpo = value.replace(/\D/g, '')
+            if (cpfLimpo.length !== 11) {
+              console.log(`⚠️ CPF inválido removido: ${value}`)
+              return false
+            }
+            return [key, cpfLimpo]
+          }
+          
+          if (key === 'telefone' && typeof value === 'string') {
+            // Remover formatação do telefone se necessário
+            const telefoneLimpo = value.replace(/\D/g, '')
+            if (telefoneLimpo.length < 10) {
+              console.log(`⚠️ Telefone inválido removido: ${value}`)
+              return false
+            }
+            return [key, telefoneLimpo]
+          }
+          
+          if (key === 'data_nascimento' && typeof value === 'string') {
+            // Validar formato de data
+            const data = new Date(value)
+            if (isNaN(data.getTime())) {
+              console.log(`⚠️ Data inválida removida: ${value}`)
+              return false
+            }
+          }
+          
+          return true
+        })
+      )
+
+      console.log("🧹 Dados limpos para envio:", dadosLimpos)
+
+      if (Object.keys(dadosLimpos).length === 0) {
+        console.warn("⚠️ Nenhum dado válido após limpeza")
+        toast.error("Nenhum dado válido para salvar")
+        return
+      }
       
       // Validar se o ID existe
       if (!propostaDetalhada.id) {
@@ -503,16 +553,46 @@ export default function CadastradoPage() {
         return
       }
       
-      console.log("🔄 Executando update no Supabase...")
-      const { error } = await supabase
+      // Primeiro, verificar se o registro existe
+      console.log("🔍 Verificando se o registro existe...")
+      const { data: existingRecord, error: checkError } = await supabase
         .from(tabelaOrigem)
-        .update(editData)
+        .select("id, nome, email")
         .eq("id", propostaDetalhada.id)
+        .single()
+
+      if (checkError) {
+        console.error("❌ Erro ao verificar registro existente:", checkError)
+        throw new Error(`Registro não encontrado: ${checkError.message}`)
+      }
+
+      console.log("✅ Registro encontrado:", existingRecord)
+
+      console.log("🔄 Executando update no Supabase...")
+      console.log("📊 Query details:", {
+        tabela: tabelaOrigem,
+        id: propostaDetalhada.id,
+        dados: dadosLimpos
+      })
+      
+      const { data: updateResult, error } = await supabase
+        .from(tabelaOrigem)
+        .update(dadosLimpos)
+        .eq("id", propostaDetalhada.id)
+        .select()
 
       if (error) {
         console.error("❌ Erro do Supabase:", error)
+        console.error("❌ Detalhes do erro:", {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        })
         throw error
       }
+
+      console.log("✅ Update result:", updateResult)
 
       console.log("✅ Update executado com sucesso!")
       toast.success("Dados atualizados com sucesso!")
