@@ -99,12 +99,8 @@ const formSchema = z.object({
     )
     .default([]),
 
-  // Documentos obrigatórios do titular
-  rg_frente: z.any().refine((file) => file !== null, "RG (Frente) é obrigatório"),
-  rg_verso: z.any().refine((file) => file !== null, "RG (Verso) é obrigatório"),
-  cpf_documento: z.any().refine((file) => file !== null, "CPF é obrigatório"),
-  comprovante_residencia: z.any().refine((file) => file !== null, "Comprovante de residência é obrigatório"),
-  cns_documento: z.any().refine((file) => file !== null, "CNS é obrigatório"),
+  // Documentos obrigatórios do titular - Validação manual no onSubmit
+  // (Removido do schema Zod para evitar conflito com validação manual)
 
   // Informações adicionais
   observacoes: z.string().optional(),
@@ -574,10 +570,30 @@ export default function NovaPropostaPage() {
     if (!documentosUpload.comprovante_residencia) camposObrigatoriosVazios.push("Comprovante de Residência")
     if (!documentosUpload.cns) camposObrigatoriosVazios.push("Documento CNS")
     
+    console.log("🔍 Validação de documentos:", {
+      rg_frente: !!documentosUpload.rg_frente,
+      rg_verso: !!documentosUpload.rg_verso,
+      cpf: !!documentosUpload.cpf,
+      comprovante_residencia: !!documentosUpload.comprovante_residencia,
+      cns: !!documentosUpload.cns
+    })
+    
     // Validar documentos dos dependentes (se houver)
     if (data.tem_dependentes && data.dependentes.length > 0) {
+      console.log("🔍 Validando documentos dos dependentes:", {
+        tem_dependentes: data.tem_dependentes,
+        quantidade_dependentes: data.dependentes.length,
+        documentos_dependentes: documentosDependentesUpload
+      })
+      
       data.dependentes.forEach((dependente, index) => {
         const docsDep = documentosDependentesUpload[index]
+        console.log(`🔍 Dependente ${index + 1} documentos:`, {
+          rg_frente: !!docsDep?.rg_frente,
+          rg_verso: !!docsDep?.rg_verso,
+          comprovante_residencia: !!docsDep?.comprovante_residencia
+        })
+        
         if (!docsDep?.rg_frente) camposObrigatoriosVazios.push(`RG (Frente) do Dependente ${index + 1}`)
         if (!docsDep?.rg_verso) camposObrigatoriosVazios.push(`RG (Verso) do Dependente ${index + 1}`)
         if (!docsDep?.comprovante_residencia) camposObrigatoriosVazios.push(`Comprovante de Residência do Dependente ${index + 1}`)
@@ -586,6 +602,7 @@ export default function NovaPropostaPage() {
     
     // Se há campos obrigatórios vazios, mostrar mensagem detalhada
     if (camposObrigatoriosVazios.length > 0) {
+      console.log("❌ CAMPOS OBRIGATÓRIOS VAZIOS:", camposObrigatoriosVazios)
       const mensagem = `Por favor, preencha os seguintes campos obrigatórios:\n\n• ${camposObrigatoriosVazios.join('\n• ')}`
       toast.error(mensagem, {
         duration: 6000,
