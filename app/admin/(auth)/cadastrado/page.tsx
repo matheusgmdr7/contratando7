@@ -479,17 +479,42 @@ export default function CadastradoPage() {
 
   async function salvarEdicao() {
     try {
-      const tabelaOrigem = propostaDetalhada.origem === "propostas" ? "propostas" : "propostas_corretores"
+      console.log("💾 INICIANDO SALVAMENTO DE EDIÇÃO")
+      console.log("=".repeat(50))
+      console.log("📋 Dados da proposta detalhada:", propostaDetalhada)
+      console.log("✏️ Dados de edição:", editData)
+      console.log("🆔 ID da proposta:", propostaDetalhada.id)
+      console.log("🏛️ Origem da proposta:", propostaDetalhada.origem)
       
+      const tabelaOrigem = propostaDetalhada.origem === "propostas" ? "propostas" : "propostas_corretores"
+      console.log("📊 Tabela de origem:", tabelaOrigem)
+      
+      // Validar se há dados para salvar
+      if (!editData || Object.keys(editData).length === 0) {
+        console.warn("⚠️ Nenhum dado de edição encontrado")
+        toast.error("Nenhum dado para salvar")
+        return
+      }
+      
+      // Validar se o ID existe
+      if (!propostaDetalhada.id) {
+        console.error("❌ ID da proposta não encontrado")
+        toast.error("ID da proposta não encontrado")
+        return
+      }
+      
+      console.log("🔄 Executando update no Supabase...")
       const { error } = await supabase
         .from(tabelaOrigem)
         .update(editData)
         .eq("id", propostaDetalhada.id)
 
       if (error) {
+        console.error("❌ Erro do Supabase:", error)
         throw error
       }
 
+      console.log("✅ Update executado com sucesso!")
       toast.success("Dados atualizados com sucesso!")
       setEditMode(false)
       
@@ -500,8 +525,8 @@ export default function CadastradoPage() {
       carregarPropostas()
       
     } catch (error) {
-      console.error("Erro ao salvar:", error)
-      toast.error("Erro ao salvar os dados")
+      console.error("❌ Erro ao salvar:", error)
+      toast.error(`Erro ao salvar os dados: ${error.message || "Erro desconhecido"}`)
     }
   }
 
@@ -1545,7 +1570,7 @@ export default function CadastradoPage() {
                               }
                               return null
                             })()}
-                          </div>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>

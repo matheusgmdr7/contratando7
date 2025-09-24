@@ -2138,7 +2138,7 @@ export default function NovaPropostaPage() {
                         <label className={`flex items-center gap-2 cursor-pointer px-3 py-2 rounded border border-dashed transition-colors ${documentosUpload.rg_frente ? 'bg-green-50 border-green-300' : 'bg-muted hover:bg-muted-foreground/10'}`}> 
                           <Upload className="h-4 w-4 text-primary" />
                           <span className="text-xs sm:text-sm">{documentosUpload.rg_frente ? 'Arquivo selecionado' : 'Selecionar arquivo'}</span>
-                          <input type="file" accept="image/*" onChange={(e) => handleFileChange("rg_frente", e)} className="hidden" />
+                          <input type="file" accept="image/*,application/pdf" onChange={(e) => handleFileChange("rg_frente", e)} className="hidden" />
                         </label>
                       </FormControl>
                       {documentosUpload.rg_frente && (
@@ -2153,7 +2153,7 @@ export default function NovaPropostaPage() {
                         <label className={`flex items-center gap-2 cursor-pointer px-3 py-2 rounded border border-dashed transition-colors ${documentosUpload.rg_verso ? 'bg-green-50 border-green-300' : 'bg-muted hover:bg-muted-foreground/10'}`}> 
                           <Upload className="h-4 w-4 text-primary" />
                           <span className="text-xs sm:text-sm">{documentosUpload.rg_verso ? 'Arquivo selecionado' : 'Selecionar arquivo'}</span>
-                          <input type="file" accept="image/*" onChange={(e) => handleFileChange("rg_verso", e)} className="hidden" />
+                          <input type="file" accept="image/*,application/pdf" onChange={(e) => handleFileChange("rg_verso", e)} className="hidden" />
                         </label>
                       </FormControl>
                       {documentosUpload.rg_verso && (
@@ -2169,7 +2169,7 @@ export default function NovaPropostaPage() {
                           <label className={`flex items-center gap-2 cursor-pointer px-3 py-2 rounded border border-dashed transition-colors ${documentosUpload.cpf ? 'bg-green-50 border-green-300' : 'bg-muted hover:bg-muted-foreground/10'}`}> 
                             <Upload className="h-4 w-4 text-primary" />
                             <span className="text-xs sm:text-sm">{documentosUpload.cpf ? 'Arquivo selecionado' : 'Selecionar arquivo'}</span>
-                            <input type="file" accept="image/*" onChange={(e) => handleFileChange("cpf", e)} className="hidden" />
+                            <input type="file" accept="image/*,application/pdf" onChange={(e) => handleFileChange("cpf", e)} className="hidden" />
                           </label>
                         </FormControl>
                         {documentosUpload.cpf && (
@@ -2185,7 +2185,7 @@ export default function NovaPropostaPage() {
                           <label className={`flex items-center gap-2 cursor-pointer px-3 py-2 rounded border border-dashed transition-colors ${documentosUpload.comprovante_residencia ? 'bg-green-50 border-green-300' : 'bg-muted hover:bg-muted-foreground/10'}`}> 
                             <Upload className="h-4 w-4 text-primary" />
                             <span className="text-xs sm:text-sm">{documentosUpload.comprovante_residencia ? 'Arquivo selecionado' : 'Selecionar arquivo'}</span>
-                            <input type="file" accept="image/*" onChange={(e) => handleFileChange("comprovante_residencia", e)} className="hidden" />
+                            <input type="file" accept="image/*,application/pdf" onChange={(e) => handleFileChange("comprovante_residencia", e)} className="hidden" />
                           </label>
                         </FormControl>
                         {documentosUpload.comprovante_residencia && (
@@ -2202,7 +2202,7 @@ export default function NovaPropostaPage() {
                         <label className={`flex items-center gap-2 cursor-pointer px-3 py-2 rounded border border-dashed transition-colors ${documentosUpload.cns ? 'bg-green-50 border-green-300' : 'bg-muted hover:bg-muted-foreground/10'}`}> 
                           <Upload className="h-4 w-4 text-primary" />
                           <span className="text-xs sm:text-sm">{documentosUpload.cns ? 'Arquivo selecionado' : 'Selecionar arquivo'}</span>
-                          <input type="file" accept="image/*" onChange={(e) => handleFileChange("cns", e)} className="hidden" />
+                          <input type="file" accept="image/*,application/pdf" onChange={(e) => handleFileChange("cns", e)} className="hidden" />
                         </label>
                       </FormControl>
                       {documentosUpload.cns && (
@@ -2231,7 +2231,7 @@ export default function NovaPropostaPage() {
                                   <label className={`flex items-center gap-2 cursor-pointer px-3 py-2 rounded border border-dashed transition-colors ${documentosDependentesUpload[index] && documentosDependentesUpload[index].rg_frente ? 'bg-green-50 border-green-300' : 'bg-muted hover:bg-muted-foreground/10'}`}> 
                                     <Upload className="h-4 w-4 text-primary" />
                                     <span className="text-xs sm:text-sm">{documentosDependentesUpload[index] && documentosDependentesUpload[index].rg_frente ? 'Arquivo selecionado' : 'Selecionar arquivo'}</span>
-                                    <input type="file" accept="image/*" onChange={(e) => handleDependentFileChange(index, "rg_frente", e)} className="hidden" />
+                                    <input type="file" accept="image/*,application/pdf" onChange={(e) => handleDependentFileChange(index, "rg_frente", e)} className="hidden" />
                                   </label>
                                 </FormControl>
                                 {documentosDependentesUpload[index] && documentosDependentesUpload[index].rg_frente && (
@@ -2246,7 +2246,7 @@ export default function NovaPropostaPage() {
                                   <label className={`flex items-center gap-2 cursor-pointer px-3 py-2 rounded border border-dashed transition-colors ${documentosDependentesUpload[index] && documentosDependentesUpload[index].rg_verso ? 'bg-green-50 border-green-300' : 'bg-muted hover:bg-muted-foreground/10'}`}> 
                                     <Upload className="h-4 w-4 text-primary" />
                                     <span className="text-xs sm:text-sm">{documentosDependentesUpload[index] && documentosDependentesUpload[index].rg_verso ? 'Arquivo selecionado' : 'Selecionar arquivo'}</span>
-                                    <input type="file" accept="image/*" onChange={(e) => handleDependentFileChange(index, "rg_verso", e)} className="hidden" />
+                                    <input type="file" accept="image/*,application/pdf" onChange={(e) => handleDependentFileChange(index, "rg_verso", e)} className="hidden" />
                                   </label>
                                 </FormControl>
                                 {documentosDependentesUpload[index] && documentosDependentesUpload[index].rg_verso && (
@@ -2263,7 +2263,7 @@ export default function NovaPropostaPage() {
                                     <label className={`flex items-center gap-2 cursor-pointer px-3 py-2 rounded border border-dashed transition-colors ${documentosDependentesUpload[index] && documentosDependentesUpload[index].cpf ? 'bg-green-50 border-green-300' : 'bg-muted hover:bg-muted-foreground/10'}`}> 
                                       <Upload className="h-4 w-4 text-primary" />
                                       <span className="text-xs sm:text-sm">{documentosDependentesUpload[index] && documentosDependentesUpload[index].cpf ? 'Arquivo selecionado' : 'Selecionar arquivo'}</span>
-                                      <input type="file" accept="image/*" onChange={(e) => handleDependentFileChange(index, "cpf", e)} className="hidden" />
+                                      <input type="file" accept="image/*,application/pdf" onChange={(e) => handleDependentFileChange(index, "cpf", e)} className="hidden" />
                                     </label>
                                   </FormControl>
                                   {documentosDependentesUpload[index] && documentosDependentesUpload[index].cpf && (
@@ -2279,7 +2279,7 @@ export default function NovaPropostaPage() {
                                     <label className={`flex items-center gap-2 cursor-pointer px-3 py-2 rounded border border-dashed transition-colors ${documentosDependentesUpload[index] && documentosDependentesUpload[index].cns ? 'bg-green-50 border-green-300' : 'bg-muted hover:bg-muted-foreground/10'}`}> 
                                       <Upload className="h-4 w-4 text-primary" />
                                       <span className="text-xs sm:text-sm">{documentosDependentesUpload[index] && documentosDependentesUpload[index].cns ? 'Arquivo selecionado' : 'Selecionar arquivo'}</span>
-                                      <input type="file" accept="image/*" onChange={(e) => handleDependentFileChange(index, "cns", e)} className="hidden" />
+                                      <input type="file" accept="image/*,application/pdf" onChange={(e) => handleDependentFileChange(index, "cns", e)} className="hidden" />
                                     </label>
                                   </FormControl>
                                   {documentosDependentesUpload[index] && documentosDependentesUpload[index].cns && (
