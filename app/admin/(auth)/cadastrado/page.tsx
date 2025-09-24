@@ -482,165 +482,57 @@ export default function CadastradoPage() {
   }
 
   async function salvarEdicao() {
-    // TESTE SIMPLES - VERIFICAR SE FUNÇÃO É CHAMADA
-    console.log("=== FUNÇÃO SALVAR EDIÇÃO CHAMADA ===")
-    alert("=== FUNÇÃO SALVAR EDIÇÃO CHAMADA ===")
-    
     try {
-      console.log("=== INICIANDO SALVAMENTO ===")
-      console.log("Proposta ID:", propostaDetalhada?.id)
-      console.log("Origem:", propostaDetalhada?.origem)
-      console.log("Dados de edição:", editData)
+      console.log("=== FUNÇÃO SALVAR EDIÇÃO CHAMADA ===")
       
       const tabelaOrigem = propostaDetalhada?.origem === "propostas" ? "propostas" : "propostas_corretores"
       console.log("Tabela de origem:", tabelaOrigem)
       
-      // Validar se há dados para salvar
-      if (!editData || Object.keys(editData).length === 0) {
-        console.warn("⚠️ Nenhum dado de edição encontrado")
-        toast.error("Nenhum dado para salvar")
-        return
-      }
-
-      // Definir campos válidos para cada tabela
-      const camposValidosPorTabela = {
-        propostas: [
-          'nome', 'email', 'telefone', 'cpf', 'rg', 'orgao_emissor', 'cns', 
-          'data_nascimento', 'sexo', 'estado_civil', 'uf_nascimento', 'nome_mae',
-          'cep', 'endereco', 'numero', 'complemento', 'bairro', 'cidade', 'estado'
-        ],
-        propostas_corretores: [
+      // SOLUÇÃO DIRETA: Criar objeto limpo baseado na tabela
+      let dadosParaSalvar = {}
+      
+      if (tabelaOrigem === "propostas") {
+        // Para propostas, incluir todos os campos
+        dadosParaSalvar = { ...editData }
+      } else {
+        // Para propostas_corretores, incluir apenas campos válidos
+        const camposValidos = [
           'nome', 'email', 'telefone', 'cpf', 'rg', 'orgao_emissor', 'cns', 
           'data_nascimento', 'sexo', 'estado_civil', 'uf_nascimento', 'nome_mae'
-          // Campos de endereço não existem na tabela propostas_corretores
         ]
-      }
-
-      // Campos que NUNCA devem ser enviados para propostas_corretores
-      const camposProibidosPropostasCorretores = [
-        'cep', 'endereco', 'numero', 'complemento', 'bairro', 'cidade', 'estado'
-      ]
-
-      const camposValidos = camposValidosPorTabela[tabelaOrigem] || []
-      console.log(`📋 Campos válidos para ${tabelaOrigem}:`, camposValidos)
-
-      // Limpar dados vazios e validar campos
-      console.log("🔍 Dados originais de edição:", editData)
-      console.log("🔍 Campos válidos para esta tabela:", camposValidos)
-      
-      const dadosLimpos = Object.fromEntries(
-        Object.entries(editData).filter(([key, value]) => {
-          console.log(`🔍 Processando campo: ${key} = ${value}`)
-          
-          // Verificar se o campo existe na tabela
-          if (!camposValidos.includes(key)) {
-            console.log(`⚠️ Campo '${key}' não existe na tabela ${tabelaOrigem}, removendo`)
-            return false
+        
+        camposValidos.forEach(campo => {
+          if (editData[campo] && editData[campo] !== "") {
+            dadosParaSalvar[campo] = editData[campo]
           }
-
-          // Verificação dupla para campos proibidos em propostas_corretores
-          if (tabelaOrigem === 'propostas_corretores' && camposProibidosPropostasCorretores.includes(key)) {
-            console.log(`🚫 Campo '${key}' é proibido para propostas_corretores, removendo`)
-            return false
-          }
-
-          if (value === null || value === undefined || value === "") {
-            console.log(`⚠️ Removendo campo vazio: ${key} = ${value}`)
-            return false
-          }
-          
-          // Validações específicas para campos problemáticos
-          if (key === 'cpf' && typeof value === 'string') {
-            // Remover formatação do CPF se necessário
-            const cpfLimpo = value.replace(/\D/g, '')
-            if (cpfLimpo.length !== 11) {
-              console.log(`⚠️ CPF inválido removido: ${value}`)
-              return false
-            }
-            return [key, cpfLimpo]
-          }
-          
-          if (key === 'telefone' && typeof value === 'string') {
-            // Remover formatação do telefone se necessário
-            const telefoneLimpo = value.replace(/\D/g, '')
-            if (telefoneLimpo.length < 10) {
-              console.log(`⚠️ Telefone inválido removido: ${value}`)
-              return false
-            }
-            return [key, telefoneLimpo]
-          }
-          
-          if (key === 'data_nascimento' && typeof value === 'string') {
-            // Validar formato de data
-            const data = new Date(value)
-            if (isNaN(data.getTime())) {
-              console.log(`⚠️ Data inválida removida: ${value}`)
-              return false
-            }
-          }
-          
-          return true
         })
-      )
-
-      console.log("🧹 Dados limpos para envio:", dadosLimpos)
-      console.log("🔍 Campos que serão enviados:", Object.keys(dadosLimpos))
-      console.log("🔍 Campos que foram removidos:", Object.keys(editData).filter(key => !Object.keys(dadosLimpos).includes(key)))
-
-      if (Object.keys(dadosLimpos).length === 0) {
-        console.warn("⚠️ Nenhum dado válido após limpeza")
+      }
+      
+      console.log("Dados para salvar:", dadosParaSalvar)
+      
+      // Validar se há dados para salvar
+      if (!dadosParaSalvar || Object.keys(dadosParaSalvar).length === 0) {
+        console.warn("⚠️ Nenhum dado válido para salvar")
         toast.error("Nenhum dado válido para salvar")
         return
       }
       
-      // Validar se o ID existe
-      if (!propostaDetalhada.id) {
+      if (!propostaDetalhada?.id) {
         console.error("❌ ID da proposta não encontrado")
         toast.error("ID da proposta não encontrado")
         return
       }
       
-      // Primeiro, verificar se o registro existe
-      console.log("🔍 Verificando se o registro existe...")
-      const { data: existingRecord, error: checkError } = await supabase
-        .from(tabelaOrigem)
-        .select("id, nome, email")
-        .eq("id", propostaDetalhada.id)
-        .single()
-
-      if (checkError) {
-        console.error("❌ Erro ao verificar registro existente:", checkError)
-        throw new Error(`Registro não encontrado: ${checkError.message}`)
-      }
-
-      console.log("✅ Registro encontrado:", existingRecord)
-
-      // SOLUÇÃO DIRETA: Remover campos de endereço se for propostas_corretores
-      let dadosFinais = { ...dadosLimpos }
-      console.log("Dados antes da limpeza:", dadosFinais)
-      
-      if (tabelaOrigem === 'propostas_corretores') {
-        console.log("=== REMOVENDO CAMPOS DE ENDEREÇO ===")
-        const camposEndereco = ['cep', 'endereco', 'numero', 'complemento', 'bairro', 'cidade', 'estado']
-        camposEndereco.forEach(campo => {
-          if (dadosFinais[campo]) {
-            console.log(`REMOVENDO: ${campo} = ${dadosFinais[campo]}`)
-            delete dadosFinais[campo]
-          }
-        })
-        console.log("Dados após remoção:", dadosFinais)
-      }
-
       console.log("🔄 Executando update no Supabase...")
       console.log("📊 Query details:", {
         tabela: tabelaOrigem,
         id: propostaDetalhada.id,
-        dados: dadosFinais
+        dados: dadosParaSalvar
       })
       
       const { data: updateResult, error } = await supabase
         .from(tabelaOrigem)
-        .update(dadosFinais)
+        .update(dadosParaSalvar)
         .eq("id", propostaDetalhada.id)
         .select()
 
