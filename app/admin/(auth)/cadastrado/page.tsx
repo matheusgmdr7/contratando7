@@ -496,6 +496,24 @@ export default function CadastradoPage() {
       
       console.log("Dados mínimos:", dadosMinimos)
       console.log("ID da proposta:", propostaDetalhada.id)
+      console.log("Origem da proposta:", propostaDetalhada.origem)
+      
+      // Primeiro, verificar se o registro existe
+      console.log("🔍 Verificando se o registro existe...")
+      const { data: existingRecord, error: checkError } = await supabase
+        .from("propostas_corretores")
+        .select("id, nome, email")
+        .eq("id", propostaDetalhada.id)
+        .single()
+      
+      if (checkError) {
+        console.error("❌ Erro ao verificar registro:", checkError)
+        console.error("❌ Registro não existe ou tabela não encontrada")
+        toast.error(`Registro não encontrado: ${checkError.message}`)
+        return
+      }
+      
+      console.log("✅ Registro encontrado:", existingRecord)
       
       const { data, error } = await supabase
         .from("propostas_corretores")
@@ -505,6 +523,11 @@ export default function CadastradoPage() {
 
       if (error) {
         console.error("❌ Erro do Supabase:", error)
+        console.error("❌ Detalhes completos do erro:", JSON.stringify(error, null, 2))
+        console.error("❌ Código do erro:", error.code)
+        console.error("❌ Mensagem do erro:", error.message)
+        console.error("❌ Detalhes do erro:", error.details)
+        console.error("❌ Hint do erro:", error.hint)
         toast.error(`Erro ao salvar: ${error.message}`)
         return
       }
