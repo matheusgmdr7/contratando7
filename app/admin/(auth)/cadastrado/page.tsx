@@ -458,9 +458,13 @@ export default function CadastradoPage() {
   }
 
   function iniciarEdicao() {
+    console.log("🔍 FUNÇÃO INICIAR EDIÇÃO CHAMADA")
+    alert("🔍 FUNÇÃO INICIAR EDIÇÃO CHAMADA")
     console.log("🔍 Debug - Dados da proposta detalhada:", propostaDetalhada)
+    console.log("🔍 Estado editMode antes:", editMode)
     
     setEditMode(true)
+    console.log("🔍 setEditMode(true) executado")
     setEditData({
       nome: obterNomeCliente(propostaDetalhada),
       email: obterEmailCliente(propostaDetalhada),
@@ -1373,7 +1377,11 @@ export default function CadastradoPage() {
                   {editMode ? (
                     <>
                       <Button
-                        onClick={salvarEdicao}
+                        onClick={() => {
+                          console.log("🔍 BOTÃO SALVAR CLICADO")
+                          alert("🔍 BOTÃO SALVAR CLICADO")
+                          salvarEdicao()
+                        }}
                         className="bg-green-600 hover:bg-green-700 text-white"
                       >
                         <Save className="h-4 w-4 mr-2" />
@@ -1389,7 +1397,11 @@ export default function CadastradoPage() {
                   ) : (
                     <>
                       <Button
-                        onClick={iniciarEdicao}
+                        onClick={() => {
+                          console.log("🔍 BOTÃO EDITAR CLICADO")
+                          alert("🔍 BOTÃO EDITAR CLICADO")
+                          iniciarEdicao()
+                        }}
                         className="bg-orange-600 hover:bg-orange-700 text-white"
                       >
                         <Edit className="h-4 w-4 mr-2" />
