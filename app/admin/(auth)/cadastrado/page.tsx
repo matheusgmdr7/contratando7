@@ -496,9 +496,32 @@ export default function CadastradoPage() {
         return
       }
 
+      // Definir campos válidos para cada tabela
+      const camposValidosPorTabela = {
+        propostas: [
+          'nome', 'email', 'telefone', 'cpf', 'rg', 'orgao_emissor', 'cns', 
+          'data_nascimento', 'sexo', 'estado_civil', 'uf_nascimento', 'nome_mae',
+          'cep', 'endereco', 'numero', 'complemento', 'bairro', 'cidade', 'estado'
+        ],
+        propostas_corretores: [
+          'nome', 'email', 'telefone', 'cpf', 'rg', 'orgao_emissor', 'cns', 
+          'data_nascimento', 'sexo', 'estado_civil', 'uf_nascimento', 'nome_mae'
+          // Campos de endereço não existem na tabela propostas_corretores
+        ]
+      }
+
+      const camposValidos = camposValidosPorTabela[tabelaOrigem] || []
+      console.log(`📋 Campos válidos para ${tabelaOrigem}:`, camposValidos)
+
       // Limpar dados vazios e validar campos
       const dadosLimpos = Object.fromEntries(
         Object.entries(editData).filter(([key, value]) => {
+          // Verificar se o campo existe na tabela
+          if (!camposValidos.includes(key)) {
+            console.log(`⚠️ Campo '${key}' não existe na tabela ${tabelaOrigem}, removendo`)
+            return false
+          }
+
           if (value === null || value === undefined || value === "") {
             console.log(`⚠️ Removendo campo vazio: ${key} = ${value}`)
             return false
