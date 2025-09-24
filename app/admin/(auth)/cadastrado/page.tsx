@@ -478,20 +478,18 @@ export default function CadastradoPage() {
   }
 
   async function salvarEdicao() {
-    console.log("🚀 FUNÇÃO SALVAR EDIÇÃO CHAMADA")
-    alert("FUNÇÃO SALVAR EDIÇÃO CHAMADA")
+    // TESTE SIMPLES - VERIFICAR SE FUNÇÃO É CHAMADA
+    console.log("=== FUNÇÃO SALVAR EDIÇÃO CHAMADA ===")
+    alert("=== FUNÇÃO SALVAR EDIÇÃO CHAMADA ===")
     
     try {
-      console.log("🚀🚀🚀 FUNÇÃO SALVAR EDIÇÃO EXECUTADA 🚀🚀🚀")
-      console.log("💾 INICIANDO SALVAMENTO DE EDIÇÃO")
-      console.log("=".repeat(50))
-      console.log("📋 Dados da proposta detalhada:", propostaDetalhada)
-      console.log("✏️ Dados de edição:", editData)
-      console.log("🆔 ID da proposta:", propostaDetalhada.id)
-      console.log("🏛️ Origem da proposta:", propostaDetalhada.origem)
+      console.log("=== INICIANDO SALVAMENTO ===")
+      console.log("Proposta ID:", propostaDetalhada?.id)
+      console.log("Origem:", propostaDetalhada?.origem)
+      console.log("Dados de edição:", editData)
       
-      const tabelaOrigem = propostaDetalhada.origem === "propostas" ? "propostas" : "propostas_corretores"
-      console.log("📊 Tabela de origem:", tabelaOrigem)
+      const tabelaOrigem = propostaDetalhada?.origem === "propostas" ? "propostas" : "propostas_corretores"
+      console.log("Tabela de origem:", tabelaOrigem)
       
       // Validar se há dados para salvar
       if (!editData || Object.keys(editData).length === 0) {
@@ -615,14 +613,18 @@ export default function CadastradoPage() {
 
       // SOLUÇÃO DIRETA: Remover campos de endereço se for propostas_corretores
       let dadosFinais = { ...dadosLimpos }
+      console.log("Dados antes da limpeza:", dadosFinais)
+      
       if (tabelaOrigem === 'propostas_corretores') {
+        console.log("=== REMOVENDO CAMPOS DE ENDEREÇO ===")
         const camposEndereco = ['cep', 'endereco', 'numero', 'complemento', 'bairro', 'cidade', 'estado']
         camposEndereco.forEach(campo => {
           if (dadosFinais[campo]) {
-            console.log(`🚫 Removendo campo de endereço: ${campo}`)
+            console.log(`REMOVENDO: ${campo} = ${dadosFinais[campo]}`)
             delete dadosFinais[campo]
           }
         })
+        console.log("Dados após remoção:", dadosFinais)
       }
 
       console.log("🔄 Executando update no Supabase...")
