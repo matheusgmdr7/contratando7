@@ -478,9 +478,11 @@ export default function CadastradoPage() {
   }
 
   async function salvarEdicao() {
+    console.log("🚀 FUNÇÃO SALVAR EDIÇÃO CHAMADA")
+    alert("FUNÇÃO SALVAR EDIÇÃO CHAMADA")
+    
     try {
       console.log("🚀🚀🚀 FUNÇÃO SALVAR EDIÇÃO EXECUTADA 🚀🚀🚀")
-      alert("🚀 FUNÇÃO SALVAR EDIÇÃO EXECUTADA - VERIFIQUE O CONSOLE")
       console.log("💾 INICIANDO SALVAMENTO DE EDIÇÃO")
       console.log("=".repeat(50))
       console.log("📋 Dados da proposta detalhada:", propostaDetalhada)
@@ -611,16 +613,28 @@ export default function CadastradoPage() {
 
       console.log("✅ Registro encontrado:", existingRecord)
 
+      // SOLUÇÃO DIRETA: Remover campos de endereço se for propostas_corretores
+      let dadosFinais = { ...dadosLimpos }
+      if (tabelaOrigem === 'propostas_corretores') {
+        const camposEndereco = ['cep', 'endereco', 'numero', 'complemento', 'bairro', 'cidade', 'estado']
+        camposEndereco.forEach(campo => {
+          if (dadosFinais[campo]) {
+            console.log(`🚫 Removendo campo de endereço: ${campo}`)
+            delete dadosFinais[campo]
+          }
+        })
+      }
+
       console.log("🔄 Executando update no Supabase...")
       console.log("📊 Query details:", {
         tabela: tabelaOrigem,
         id: propostaDetalhada.id,
-        dados: dadosLimpos
+        dados: dadosFinais
       })
       
       const { data: updateResult, error } = await supabase
         .from(tabelaOrigem)
-        .update(dadosLimpos)
+        .update(dadosFinais)
         .eq("id", propostaDetalhada.id)
         .select()
 
