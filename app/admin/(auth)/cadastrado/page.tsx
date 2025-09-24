@@ -479,6 +479,8 @@ export default function CadastradoPage() {
 
   async function salvarEdicao() {
     try {
+      console.log("🚀🚀🚀 FUNÇÃO SALVAR EDIÇÃO EXECUTADA 🚀🚀🚀")
+      alert("🚀 FUNÇÃO SALVAR EDIÇÃO EXECUTADA - VERIFIQUE O CONSOLE")
       console.log("💾 INICIANDO SALVAMENTO DE EDIÇÃO")
       console.log("=".repeat(50))
       console.log("📋 Dados da proposta detalhada:", propostaDetalhada)
