@@ -481,33 +481,25 @@ export default function CadastradoPage() {
     })
   }
 
-  // FUNÇÃO DIRETA E SIMPLES
+  // FUNÇÃO ULTRA SIMPLES - APENAS CAMPOS ESSENCIAIS
   const salvarEdicao = async () => {
-    alert("FUNÇÃO SALVAR CHAMADA - TESTE DIRETO")
-    console.log("FUNÇÃO SALVAR CHAMADA - TESTE DIRETO")
+    alert("FUNÇÃO SALVAR CHAMADA - ULTRA SIMPLES")
+    console.log("FUNÇÃO SALVAR CHAMADA - ULTRA SIMPLES")
     
     try {
-      // SOLUÇÃO DIRETA: Apenas campos básicos para propostas_corretores
-      const dadosBasicos = {
-        nome: editData.nome || "",
-        email: editData.email || "",
-        telefone: editData.telefone || "",
-        cpf: editData.cpf || "",
-        rg: editData.rg || "",
-        orgao_emissor: editData.orgao_emissor || "",
-        cns: editData.cns || "",
-        data_nascimento: editData.data_nascimento || "",
-        sexo: editData.sexo || "",
-        estado_civil: editData.estado_civil || "",
-        uf_nascimento: editData.uf_nascimento || "",
-        nome_mae: editData.nome_mae || ""
+      // APENAS os campos mais básicos que certamente existem
+      const dadosMinimos = {
+        nome: editData.nome || propostaDetalhada.nome || "",
+        email: editData.email || propostaDetalhada.email || "",
+        telefone: editData.telefone || propostaDetalhada.telefone || ""
       }
       
-      console.log("Dados básicos:", dadosBasicos)
+      console.log("Dados mínimos:", dadosMinimos)
+      console.log("ID da proposta:", propostaDetalhada.id)
       
       const { data, error } = await supabase
         .from("propostas_corretores")
-        .update(dadosBasicos)
+        .update(dadosMinimos)
         .eq("id", propostaDetalhada.id)
         .select()
 
