@@ -481,71 +481,54 @@ export default function CadastradoPage() {
     })
   }
 
+  // NOVA FUNÇÃO SIMPLIFICADA
   async function salvarEdicao() {
+    console.log("🚀 NOVA FUNÇÃO SALVAR EDIÇÃO EXECUTADA")
+    alert("🚀 NOVA FUNÇÃO SALVAR EDIÇÃO EXECUTADA")
+    
     try {
-      console.log("=== FUNÇÃO SALVAR EDIÇÃO CHAMADA ===")
-      
       const tabelaOrigem = propostaDetalhada?.origem === "propostas" ? "propostas" : "propostas_corretores"
       console.log("Tabela de origem:", tabelaOrigem)
       
-      // SOLUÇÃO DIRETA: Criar objeto limpo baseado na tabela
-      let dadosParaSalvar = {}
+      // SOLUÇÃO ULTRA SIMPLES: Apenas campos básicos para propostas_corretores
+      let dadosLimpos = {}
       
-      if (tabelaOrigem === "propostas") {
-        // Para propostas, incluir todos os campos
-        dadosParaSalvar = { ...editData }
-      } else {
-        // Para propostas_corretores, incluir apenas campos válidos
-        const camposValidos = [
-          'nome', 'email', 'telefone', 'cpf', 'rg', 'orgao_emissor', 'cns', 
-          'data_nascimento', 'sexo', 'estado_civil', 'uf_nascimento', 'nome_mae'
-        ]
-        
-        camposValidos.forEach(campo => {
-          if (editData[campo] && editData[campo] !== "") {
-            dadosParaSalvar[campo] = editData[campo]
-          }
-        })
-      }
-      
-      console.log("Dados para salvar:", dadosParaSalvar)
-      console.log("Campos que serão enviados:", Object.keys(dadosParaSalvar))
-      
-      // VERIFICAÇÃO DUPLA: Remover campos de endereço se ainda existirem
       if (tabelaOrigem === "propostas_corretores") {
-        const camposEndereco = ['cep', 'endereco', 'numero', 'complemento', 'bairro', 'cidade', 'estado']
-        camposEndereco.forEach(campo => {
-          if (dadosParaSalvar[campo]) {
-            console.log(`🚫 REMOVENDO CAMPO DE ENDEREÇO: ${campo}`)
-            delete dadosParaSalvar[campo]
-          }
-        })
-        console.log("Dados após remoção de endereço:", dadosParaSalvar)
+        // APENAS campos que existem na tabela propostas_corretores
+        if (editData.nome) dadosLimpos.nome = editData.nome
+        if (editData.email) dadosLimpos.email = editData.email
+        if (editData.telefone) dadosLimpos.telefone = editData.telefone
+        if (editData.cpf) dadosLimpos.cpf = editData.cpf
+        if (editData.rg) dadosLimpos.rg = editData.rg
+        if (editData.orgao_emissor) dadosLimpos.orgao_emissor = editData.orgao_emissor
+        if (editData.cns) dadosLimpos.cns = editData.cns
+        if (editData.data_nascimento) dadosLimpos.data_nascimento = editData.data_nascimento
+        if (editData.sexo) dadosLimpos.sexo = editData.sexo
+        if (editData.estado_civil) dadosLimpos.estado_civil = editData.estado_civil
+        if (editData.uf_nascimento) dadosLimpos.uf_nascimento = editData.uf_nascimento
+        if (editData.nome_mae) dadosLimpos.nome_mae = editData.nome_mae
+      } else {
+        // Para propostas, usar todos os dados
+        dadosLimpos = { ...editData }
       }
       
-      // Validar se há dados para salvar
-      if (!dadosParaSalvar || Object.keys(dadosParaSalvar).length === 0) {
-        console.warn("⚠️ Nenhum dado válido para salvar")
+      console.log("Dados limpos para envio:", dadosLimpos)
+      console.log("Campos que serão enviados:", Object.keys(dadosLimpos))
+      
+      if (Object.keys(dadosLimpos).length === 0) {
         toast.error("Nenhum dado válido para salvar")
         return
       }
       
       if (!propostaDetalhada?.id) {
-        console.error("❌ ID da proposta não encontrado")
         toast.error("ID da proposta não encontrado")
         return
       }
       
-      console.log("🔄 Executando update no Supabase...")
-      console.log("📊 Query details:", {
-        tabela: tabelaOrigem,
-        id: propostaDetalhada.id,
-        dados: dadosParaSalvar
-      })
-      
+      console.log("Executando update...")
       const { data: updateResult, error } = await supabase
         .from(tabelaOrigem)
-        .update(dadosParaSalvar)
+        .update(dadosLimpos)
         .eq("id", propostaDetalhada.id)
         .select()
 
