@@ -510,15 +510,31 @@ export default function CadastradoPage() {
         ]
       }
 
+      // Campos que NUNCA devem ser enviados para propostas_corretores
+      const camposProibidosPropostasCorretores = [
+        'cep', 'endereco', 'numero', 'complemento', 'bairro', 'cidade', 'estado'
+      ]
+
       const camposValidos = camposValidosPorTabela[tabelaOrigem] || []
       console.log(`📋 Campos válidos para ${tabelaOrigem}:`, camposValidos)
 
       // Limpar dados vazios e validar campos
+      console.log("🔍 Dados originais de edição:", editData)
+      console.log("🔍 Campos válidos para esta tabela:", camposValidos)
+      
       const dadosLimpos = Object.fromEntries(
         Object.entries(editData).filter(([key, value]) => {
+          console.log(`🔍 Processando campo: ${key} = ${value}`)
+          
           // Verificar se o campo existe na tabela
           if (!camposValidos.includes(key)) {
             console.log(`⚠️ Campo '${key}' não existe na tabela ${tabelaOrigem}, removendo`)
+            return false
+          }
+
+          // Verificação dupla para campos proibidos em propostas_corretores
+          if (tabelaOrigem === 'propostas_corretores' && camposProibidosPropostasCorretores.includes(key)) {
+            console.log(`🚫 Campo '${key}' é proibido para propostas_corretores, removendo`)
             return false
           }
 
@@ -562,6 +578,8 @@ export default function CadastradoPage() {
       )
 
       console.log("🧹 Dados limpos para envio:", dadosLimpos)
+      console.log("🔍 Campos que serão enviados:", Object.keys(dadosLimpos))
+      console.log("🔍 Campos que foram removidos:", Object.keys(editData).filter(key => !Object.keys(dadosLimpos).includes(key)))
 
       if (Object.keys(dadosLimpos).length === 0) {
         console.warn("⚠️ Nenhum dado válido após limpeza")
