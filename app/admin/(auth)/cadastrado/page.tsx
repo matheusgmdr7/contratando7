@@ -498,10 +498,14 @@ export default function CadastradoPage() {
       console.log("ID da proposta:", propostaDetalhada.id)
       console.log("Origem da proposta:", propostaDetalhada.origem)
       
+      // Usar tabela correta baseada na origem
+      const tabelaDestino = propostaDetalhada.origem === 'corretor' ? 'propostas_corretores' : 'propostas'
+      console.log("📊 Usando tabela:", tabelaDestino)
+      
       // Primeiro, verificar se o registro existe
       console.log("🔍 Verificando se o registro existe...")
       const { data: existingRecord, error: checkError } = await supabase
-        .from("propostas_corretores")
+        .from(tabelaDestino)
         .select("id, nome, email")
         .eq("id", propostaDetalhada.id)
         .single()
@@ -516,7 +520,7 @@ export default function CadastradoPage() {
       console.log("✅ Registro encontrado:", existingRecord)
       
       const { data, error } = await supabase
-        .from("propostas_corretores")
+        .from(tabelaDestino)
         .update(dadosMinimos)
         .eq("id", propostaDetalhada.id)
         .select()
