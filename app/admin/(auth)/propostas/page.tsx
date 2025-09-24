@@ -882,11 +882,19 @@ export default function PropostasPage() {
     console.log("📅 Debug - Data nascimento original:", propostaDetalhada.data_nascimento)
     console.log("🏛️ Debug - UF nascimento original:", propostaDetalhada.uf_nascimento)
     
+    const nomeInicial = obterNomeCliente(propostaDetalhada)
+    const emailInicial = obterEmailCliente(propostaDetalhada)
+    const telefoneInicial = obterTelefoneCliente(propostaDetalhada)
+    
+    console.log("🔍 Nome inicial:", nomeInicial)
+    console.log("🔍 Email inicial:", emailInicial)
+    console.log("🔍 Telefone inicial:", telefoneInicial)
+    
     setEditMode(true)
     setEditData({
-      nome: obterNomeCliente(propostaDetalhada),
-      email: obterEmailCliente(propostaDetalhada),
-      telefone: obterTelefoneCliente(propostaDetalhada),
+      nome: nomeInicial,
+      email: emailInicial,
+      telefone: telefoneInicial,
       cpf: propostaDetalhada.cpf || "",
       rg: propostaDetalhada.rg || "",
       orgao_emissor: propostaDetalhada.orgao_emissor || propostaDetalhada.orgao_expedidor || "",
@@ -911,18 +919,84 @@ export default function PropostasPage() {
   }
 
   async function salvarEdicao() {
+    console.log("🔧 FUNÇÃO SALVAR - VERSÃO CORRIGIDA")
+    console.log("🔧 Cache limpo, servidor reiniciado")
+    
     try {
-      const tabelaOrigem = propostaDetalhada.origem === "propostas" ? "propostas" : "propostas_corretores"
+      console.log("ID da proposta:", propostaDetalhada.id)
+      console.log("Origem da proposta:", propostaDetalhada.origem)
+      console.log("Tipo da origem:", typeof propostaDetalhada.origem)
+      console.log("Origem === 'corretor':", propostaDetalhada.origem === 'corretor')
+      console.log("Origem === 'admin':", propostaDetalhada.origem === 'admin')
+      console.log("🔍 PROPOSTA DETALHADA COMPLETA:", propostaDetalhada)
+      console.log("🔍 CORRETOR_ID:", propostaDetalhada.corretor_id)
       
-      const { error } = await supabase
-        .from(tabelaOrigem)
-        .update(editData)
+      // Primeiro, verificar em qual tabela o registro existe
+      console.log("🔍 Verificando em qual tabela o registro existe...")
+      
+      // Tentar primeiro na tabela propostas_corretores
+      let tabelaDestino = 'propostas_corretores'
+      let { data: existingRecord, error: checkError } = await supabase
+        .from(tabelaDestino)
+        .select("id")
         .eq("id", propostaDetalhada.id)
+        .single()
+      
+      // Se não encontrou na propostas_corretores, tentar na propostas
+      if (checkError) {
+        console.log("🔍 Não encontrado em propostas_corretores, tentando propostas...")
+        tabelaDestino = 'propostas'
+        const { data: existingRecord2, error: checkError2 } = await supabase
+          .from(tabelaDestino)
+          .select("id")
+          .eq("id", propostaDetalhada.id)
+          .single()
+        
+        existingRecord = existingRecord2
+        checkError = checkError2
+      }
+      
+      if (checkError) {
+        console.error("❌ Erro ao verificar registro:", checkError)
+        console.error("❌ Registro não existe em nenhuma tabela")
+        toast.error(`Registro não encontrado: ${checkError.message}`)
+        return
+      }
+      
+      console.log("✅ Registro encontrado na tabela:", tabelaDestino)
+      console.log("✅ Registro encontrado:", existingRecord)
+      
+      // Campos baseados na tabela encontrada - FOCANDO APENAS NO EMAIL PARA DEBUG
+      const dadosMinimos = tabelaDestino === 'propostas_corretores' ? {
+        email_cliente: editData.email || propostaDetalhada.email || ""
+      } : {
+        email: editData.email || propostaDetalhada.email || ""
+      }
+      
+      console.log("Dados mínimos:", dadosMinimos)
+      console.log("🔍 EditData completo:", editData)
+      console.log("🔍 Email no editData:", editData.email)
+      console.log("🔍 Email na propostaDetalhada:", propostaDetalhada.email)
+      
+      const { data, error } = await supabase
+        .from(tabelaDestino)
+        .update(dadosMinimos)
+        .eq("id", propostaDetalhada.id)
+        .select()
 
       if (error) {
-        throw error
+        console.error("❌ Erro do Supabase:", error)
+        console.error("❌ Detalhes completos do erro:", JSON.stringify(error, null, 2))
+        console.error("❌ Código do erro:", error.code)
+        console.error("❌ Mensagem do erro:", error.message)
+        console.error("❌ Detalhes do erro:", error.details)
+        console.error("❌ Hint do erro:", error.hint)
+        toast.error(`Erro ao salvar: ${error.message}`)
+        return
       }
 
+      console.log("✅ Dados salvos com sucesso:", data)
+      console.log("🔍 Email salvo no banco:", data?.[0]?.email || data?.[0]?.email_cliente)
       toast.success("Dados atualizados com sucesso!")
       setEditMode(false)
       
@@ -932,9 +1006,9 @@ export default function PropostasPage() {
       // Recarregar a lista de propostas
       carregarPropostas()
       
-    } catch (error) {
-      console.error("Erro ao salvar:", error)
-      toast.error("Erro ao salvar os dados")
+    } catch (error: any) {
+      console.error("❌ Erro geral:", error)
+      toast.error(`Erro ao salvar: ${error.message}`)
     }
   }
 

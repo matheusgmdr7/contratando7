@@ -92,9 +92,8 @@ const formSchema = z.object({
           required_error: "Sexo é obrigatório",
         }),
         orgao_emissor: z.string().min(1, "Órgão emissor é obrigatório"),
-        rg_frente: z.any().refine((file) => file !== null, "RG (Frente) do dependente é obrigatório"),
-        rg_verso: z.any().refine((file) => file !== null, "RG (Verso) do dependente é obrigatório"),
-        comprovante_residencia: z.any().refine((file) => file !== null, "Comprovante de residência do dependente é obrigatório"),
+        // Documentos dos dependentes - validação manual no onSubmit
+        // (Removido do schema Zod para evitar conflito com validação manual)
       }),
     )
     .default([]),
@@ -200,12 +199,19 @@ export default function NovaPropostaPage() {
         const produtoId = form.getValues("produto_id")
         if (produtoId) {
           carregarDescricaoProduto(produtoId)
+          
+          // Preencher sigla_plano automaticamente
+          const produtoSelecionado = produtos.find(p => p.id.toString() === produtoId)
+          if (produtoSelecionado) {
+            form.setValue("sigla_plano", produtoSelecionado.nome || "")
+            console.log("🔍 Sigla do plano preenchida automaticamente:", produtoSelecionado.nome)
+          }
         }
       }
     })
 
     return () => subscription.unsubscribe()
-  }, [form])
+  }, [form, produtos])
 
   useEffect(() => {
     // Verificar autenticação
@@ -579,7 +585,14 @@ export default function NovaPropostaPage() {
     })
     
     // Validar documentos dos dependentes (se houver)
-    if (data.tem_dependentes && data.dependentes.length > 0) {
+    console.log("🔍 DEBUG - Verificando dependentes:", {
+      tem_dependentes: data.tem_dependentes,
+      dependentes_length: data.dependentes?.length || 0,
+      documentosDependentesUpload_keys: Object.keys(documentosDependentesUpload),
+      documentosDependentesUpload: documentosDependentesUpload
+    })
+    
+    if (data.tem_dependentes && data.dependentes && data.dependentes.length > 0) {
       console.log("🔍 Validando documentos dos dependentes:", {
         tem_dependentes: data.tem_dependentes,
         quantidade_dependentes: data.dependentes.length,
@@ -591,13 +604,16 @@ export default function NovaPropostaPage() {
         console.log(`🔍 Dependente ${index + 1} documentos:`, {
           rg_frente: !!docsDep?.rg_frente,
           rg_verso: !!docsDep?.rg_verso,
-          comprovante_residencia: !!docsDep?.comprovante_residencia
+          comprovante_residencia: !!docsDep?.comprovante_residencia,
+          docsDep_exists: !!docsDep
         })
         
         if (!docsDep?.rg_frente) camposObrigatoriosVazios.push(`RG (Frente) do Dependente ${index + 1}`)
         if (!docsDep?.rg_verso) camposObrigatoriosVazios.push(`RG (Verso) do Dependente ${index + 1}`)
         if (!docsDep?.comprovante_residencia) camposObrigatoriosVazios.push(`Comprovante de Residência do Dependente ${index + 1}`)
       })
+    } else {
+      console.log("🔍 Nenhum dependente para validar ou dependentes vazios")
     }
     
     // Se há campos obrigatórios vazios, mostrar mensagem detalhada

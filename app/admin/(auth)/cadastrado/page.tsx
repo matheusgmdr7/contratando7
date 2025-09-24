@@ -459,16 +459,23 @@ export default function CadastradoPage() {
 
   function iniciarEdicao() {
     console.log("🔍 FUNÇÃO INICIAR EDIÇÃO CHAMADA")
-    alert("🔍 FUNÇÃO INICIAR EDIÇÃO CHAMADA")
     console.log("🔍 Debug - Dados da proposta detalhada:", propostaDetalhada)
     console.log("🔍 Estado editMode antes:", editMode)
+    
+    const nomeInicial = obterNomeCliente(propostaDetalhada)
+    const emailInicial = obterEmailCliente(propostaDetalhada)
+    const telefoneInicial = obterTelefoneCliente(propostaDetalhada)
+    
+    console.log("🔍 Nome inicial:", nomeInicial)
+    console.log("🔍 Email inicial:", emailInicial)
+    console.log("🔍 Telefone inicial:", telefoneInicial)
     
     setEditMode(true)
     console.log("🔍 setEditMode(true) executado")
     setEditData({
-      nome: obterNomeCliente(propostaDetalhada),
-      email: obterEmailCliente(propostaDetalhada),
-      telefone: obterTelefoneCliente(propostaDetalhada),
+      nome: nomeInicial,
+      email: emailInicial,
+      telefone: telefoneInicial,
       cpf: propostaDetalhada.cpf || "",
       rg: propostaDetalhada.rg || "",
       orgao_emissor: propostaDetalhada.orgao_emissor || propostaDetalhada.orgao_expedidor || "",
@@ -487,14 +494,6 @@ export default function CadastradoPage() {
     console.log("🔧 Cache limpo, servidor reiniciado")
     
     try {
-      // APENAS os campos mais básicos que certamente existem
-      const dadosMinimos = {
-        nome: editData.nome || propostaDetalhada.nome || "",
-        email: editData.email || propostaDetalhada.email || "",
-        telefone: editData.telefone || propostaDetalhada.telefone || ""
-      }
-      
-      console.log("Dados mínimos:", dadosMinimos)
       console.log("ID da proposta:", propostaDetalhada.id)
       console.log("Origem da proposta:", propostaDetalhada.origem)
       console.log("Tipo da origem:", typeof propostaDetalhada.origem)
@@ -503,27 +502,52 @@ export default function CadastradoPage() {
       console.log("🔍 PROPOSTA DETALHADA COMPLETA:", propostaDetalhada)
       console.log("🔍 CORRETOR_ID:", propostaDetalhada.corretor_id)
       
-      // Usar tabela correta baseada na origem
-      const tabelaDestino = propostaDetalhada.origem === 'corretor' ? 'propostas_corretores' : 'propostas'
-      console.log("📊 Usando tabela:", tabelaDestino)
-      console.log("📊 Decisão da tabela:", `origem='${propostaDetalhada.origem}' -> tabela='${tabelaDestino}'`)
+      // Primeiro, verificar em qual tabela o registro existe
+      console.log("🔍 Verificando em qual tabela o registro existe...")
       
-      // Primeiro, verificar se o registro existe
-      console.log("🔍 Verificando se o registro existe...")
-      const { data: existingRecord, error: checkError } = await supabase
+      // Tentar primeiro na tabela propostas_corretores
+      let tabelaDestino = 'propostas_corretores'
+      let { data: existingRecord, error: checkError } = await supabase
         .from(tabelaDestino)
-        .select("id, nome, email")
+        .select("id")
         .eq("id", propostaDetalhada.id)
         .single()
       
+      // Se não encontrou na propostas_corretores, tentar na propostas
+      if (checkError) {
+        console.log("🔍 Não encontrado em propostas_corretores, tentando propostas...")
+        tabelaDestino = 'propostas'
+        const { data: existingRecord2, error: checkError2 } = await supabase
+          .from(tabelaDestino)
+          .select("id")
+          .eq("id", propostaDetalhada.id)
+          .single()
+        
+        existingRecord = existingRecord2
+        checkError = checkError2
+      }
+      
       if (checkError) {
         console.error("❌ Erro ao verificar registro:", checkError)
-        console.error("❌ Registro não existe ou tabela não encontrada")
+        console.error("❌ Registro não existe em nenhuma tabela")
         toast.error(`Registro não encontrado: ${checkError.message}`)
         return
       }
       
+      console.log("✅ Registro encontrado na tabela:", tabelaDestino)
       console.log("✅ Registro encontrado:", existingRecord)
+      
+      // Campos baseados na tabela encontrada - FOCANDO APENAS NO EMAIL PARA DEBUG
+      const dadosMinimos = tabelaDestino === 'propostas_corretores' ? {
+        email_cliente: editData.email || propostaDetalhada.email || ""
+      } : {
+        email: editData.email || propostaDetalhada.email || ""
+      }
+      
+      console.log("Dados mínimos:", dadosMinimos)
+      console.log("🔍 EditData completo:", editData)
+      console.log("🔍 Email no editData:", editData.email)
+      console.log("🔍 Email na propostaDetalhada:", propostaDetalhada.email)
       
       const { data, error } = await supabase
         .from(tabelaDestino)
@@ -543,6 +567,7 @@ export default function CadastradoPage() {
       }
 
       console.log("✅ Dados salvos com sucesso:", data)
+      console.log("🔍 Email salvo no banco:", data?.[0]?.email || data?.[0]?.email_cliente)
       toast.success("Dados atualizados com sucesso!")
       setEditMode(false)
       carregarPropostas()
@@ -556,6 +581,36 @@ export default function CadastradoPage() {
   function cancelarEdicao() {
     setEditMode(false)
     setEditData({})
+  }
+
+  // FUNÇÃO DE TESTE PARA DEBUG DO EMAIL
+  async function testarEmail() {
+    console.log("🧪 TESTE DE EMAIL - FORÇANDO ATUALIZAÇÃO")
+    console.log("🧪 EditData atual:", editData)
+    console.log("🧪 PropostaDetalhada atual:", propostaDetalhada)
+    
+    const emailTeste = "teste@email.com"
+    const dadosTeste = {
+      email: emailTeste
+    }
+    
+    console.log("🧪 Tentando salvar email:", emailTeste)
+    
+    try {
+      const { data, error } = await supabase
+        .from("propostas")
+        .update(dadosTeste)
+        .eq("id", propostaDetalhada.id)
+        .select()
+      
+      if (error) {
+        console.error("❌ Erro no teste:", error)
+      } else {
+        console.log("✅ Teste bem-sucedido:", data)
+      }
+    } catch (error) {
+      console.error("❌ Erro geral no teste:", error)
+    }
   }
 
 
@@ -1286,6 +1341,12 @@ export default function CadastradoPage() {
                       >
                         <Edit className="h-4 w-4 mr-2" />
                         Editar
+                      </Button>
+                      <Button
+                        onClick={testarEmail}
+                        className="bg-red-600 hover:bg-red-700 text-white ml-2"
+                      >
+                        🧪 Teste Email
                       </Button>
                       {!verificarCadastroCompleto(propostaDetalhada) && (
                         <Button
