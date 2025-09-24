@@ -509,6 +509,19 @@ export default function CadastradoPage() {
       }
       
       console.log("Dados para salvar:", dadosParaSalvar)
+      console.log("Campos que serão enviados:", Object.keys(dadosParaSalvar))
+      
+      // VERIFICAÇÃO DUPLA: Remover campos de endereço se ainda existirem
+      if (tabelaOrigem === "propostas_corretores") {
+        const camposEndereco = ['cep', 'endereco', 'numero', 'complemento', 'bairro', 'cidade', 'estado']
+        camposEndereco.forEach(campo => {
+          if (dadosParaSalvar[campo]) {
+            console.log(`🚫 REMOVENDO CAMPO DE ENDEREÇO: ${campo}`)
+            delete dadosParaSalvar[campo]
+          }
+        })
+        console.log("Dados após remoção de endereço:", dadosParaSalvar)
+      }
       
       // Validar se há dados para salvar
       if (!dadosParaSalvar || Object.keys(dadosParaSalvar).length === 0) {
