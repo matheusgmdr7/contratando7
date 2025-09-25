@@ -1192,7 +1192,23 @@ export default function NovaPropostaPage() {
             <form onSubmit={(e) => {
               console.log("📝 FORM SUBMIT EVENT TRIGGERED")
               console.log("🔍 Event:", e)
-              form.handleSubmit(onSubmit)(e)
+              console.log("🔍 Formulário válido:", form.formState.isValid)
+              console.log("🔍 Erros do formulário:", form.formState.errors)
+              
+              // Forçar validação antes do envio
+              form.trigger().then((isValid) => {
+                console.log("🔍 Validação forçada - Válido:", isValid)
+                console.log("🔍 Erros detalhados:", form.formState.errors)
+                
+                if (isValid) {
+                  console.log("✅ Formulário válido - prosseguindo com envio")
+                  form.handleSubmit(onSubmit)(e)
+                } else {
+                  console.log("❌ Formulário inválido - impedindo envio")
+                  console.log("❌ Erros específicos:", JSON.stringify(form.formState.errors, null, 2))
+                  toast.error("Por favor, corrija os erros no formulário antes de enviar")
+                }
+              })
             }} className="space-y-6">
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <TabsList className="mb-8 overflow-x-auto whitespace-nowrap flex gap-1 sm:grid sm:grid-cols-5 rounded-lg bg-muted p-1">
