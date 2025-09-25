@@ -535,6 +535,12 @@ export default function NovaPropostaPage() {
   }
 
   const onSubmit = async (data: FormValues) => {
+    console.log("🚀 Iniciando envio da proposta...")
+    console.log("📋 Dados do formulário:", data)
+    console.log("📎 Documentos principais:", documentosUpload)
+    console.log("👥 Documentos dependentes:", documentosDependentesUpload)
+    console.log("🔍 Estado atual do formulário:", form.getValues())
+    
     if (!corretor) {
       toast.error("Dados do corretor não encontrados")
       return
@@ -595,6 +601,8 @@ export default function NovaPropostaPage() {
       documentosDependentesUpload: documentosDependentesUpload
     })
     
+    console.log("🔍 DEBUG - Campos obrigatórios antes da validação de dependentes:", camposObrigatoriosVazios)
+    
     if (data.tem_dependentes && data.dependentes && data.dependentes.length > 0) {
       console.log("🔍 Validando documentos dos dependentes:", {
         tem_dependentes: data.tem_dependentes,
@@ -622,7 +630,11 @@ export default function NovaPropostaPage() {
           console.log(`🔍 Dependente ${index + 1} não tem nome preenchido, pulando validação de documentos`)
         }
       })
-    } else {
+    }
+    
+    console.log("🔍 DEBUG - Campos obrigatórios após validação de dependentes:", camposObrigatoriosVazios)
+    
+    if (!data.tem_dependentes || !data.dependentes || data.dependentes.length === 0) {
       console.log("🔍 Nenhum dependente para validar ou dependentes vazios")
     }
     
@@ -1160,62 +1172,9 @@ export default function NovaPropostaPage() {
   const produtoId = form.watch("produto_id");
   const tabelaId = form.watch("tabela_id");
 
-  useEffect(() => {
-    if (!produtoId) return;
-    dependentes.forEach(async (dep, idx) => {
-      if (dep && dep.data_nascimento) {
-        const idade = calculateAge(dep.data_nascimento);
-        if (idade && !isNaN(Number(idade))) {
-          let valor = 0;
-          if (tabelaId) {
-            // Função auxiliar para retornar apenas o valor
-            const valorTabela = await (async () => {
-              try {
-                const idadeDep = idade;
-                // Buscar as faixas etárias da tabela
-                const { data: faixas, error: faixasError } = await supabase
-                  .from("tabelas_precos_faixas")
-                  .select("faixa_etaria, valor")
-                  .eq("tabela_id", tabelaId)
-                  .order("faixa_etaria", { ascending: true });
-                if (faixasError || !faixas || faixas.length === 0) return 0;
-                for (const faixa of faixas) {
-                  if (faixa.faixa_etaria.includes("-")) {
-                    const [minStr, maxStr] = faixa.faixa_etaria.split("-");
-                    const min = Number.parseInt(minStr.trim(), 10);
-                    const max = Number.parseInt(maxStr.trim(), 10);
-                    if (!isNaN(min) && !isNaN(max) && idadeDep >= min && idadeDep <= max) {
-                      return Number.parseFloat(faixa.valor) || 0;
-                    }
-                  } else if (faixa.faixa_etaria.endsWith("+")) {
-                    const minStr = faixa.faixa_etaria.replace("+", "").trim();
-                    const min = Number.parseInt(minStr, 10);
-                    if (!isNaN(min) && idadeDep >= min) {
-                      return Number.parseFloat(faixa.valor) || 0;
-                    }
-                  } else {
-                    const idadeExata = Number.parseInt(faixa.faixa_etaria.trim(), 10);
-                    if (!isNaN(idadeExata) && idadeDep === idadeExata) {
-                      return Number.parseFloat(faixa.valor) || 0;
-                    }
-                  }
-                }
-                return 0;
-              } catch {
-                return 0;
-              }
-            })();
-            valor = valorTabela;
-          } else {
-            valor = await obterValorProdutoPorIdade(produtoId, Number(idade));
-          }
-          if (valor > 0) {
-            form.setValue(`dependentes.${idx}.valor_individual`, formatarMoeda(valor), { shouldValidate: false });
-          }
-        }
-      }
-    });
-  }, [dependentes, produtoId, tabelaId]);
+  // useEffect para calcular valores dos dependentes - REMOVIDO para evitar loop infinito
+  // O cálculo de valores dos dependentes agora é feito apenas quando necessário
+  // nos campos de data de nascimento dos dependentes
 
   return (
     <div className="container mx-auto p-4">
