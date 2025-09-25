@@ -214,7 +214,7 @@ export default function NovaPropostaPage() {
     })
 
     return () => subscription.unsubscribe()
-  }, [form, produtos, calcularValorPorTabelaEIdade, calcularIdadeEValor, carregarDescricaoProduto])
+  }, [form, produtos])
 
   useEffect(() => {
     // Verificar autenticação
@@ -543,6 +543,8 @@ export default function NovaPropostaPage() {
     console.log("📎 Documentos principais:", documentosUpload)
     console.log("👥 Documentos dependentes:", documentosDependentesUpload)
     console.log("🔍 Estado atual do formulário:", form.getValues())
+    console.log("🔍 Formulário válido:", form.formState.isValid)
+    console.log("🔍 Erros do formulário:", form.formState.errors)
     
     if (!corretor) {
       toast.error("Dados do corretor não encontrados")
@@ -1053,7 +1055,15 @@ export default function NovaPropostaPage() {
     if (cepNumerico.length !== 8) return
 
     try {
-      const response = await fetch(`https://viacep.com.br/ws/${cepNumerico}/json/`)
+      // Adicionar timeout para evitar delay excessivo
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 5000) // 5 segundos timeout
+      
+      const response = await fetch(`https://viacep.com.br/ws/${cepNumerico}/json/`, {
+        signal: controller.signal
+      })
+      
+      clearTimeout(timeoutId)
       const data = await response.json()
 
       if (!data.erro) {
@@ -1062,10 +1072,12 @@ export default function NovaPropostaPage() {
         form.setValue("cidade", data.localidade)
         form.setValue("estado", data.uf)
         // Foca no campo número após preencher o endereço
-        document.getElementById("numero")?.focus()
+        setTimeout(() => document.getElementById("numero")?.focus(), 100)
       }
     } catch (error) {
-      console.error("Erro ao buscar CEP:", error)
+      if (error.name !== 'AbortError') {
+        console.error("Erro ao buscar CEP:", error)
+      }
     }
   }
 
@@ -1861,7 +1873,6 @@ export default function NovaPropostaPage() {
                                       value={field.value}
                                       onChange={(e) => {
                                         handleDependentCpfChange(e, index)
-                                        field.onChange(e)
                                       }}
                                     />
                                   </FormControl>
@@ -2295,7 +2306,7 @@ export default function NovaPropostaPage() {
                       ) : (
                         <>
                           <Send className="mr-2 h-4 w-4" />
-                          Criar Proposta
+                          Enviar Proposta
                         </>
                       )}
                     </Button>
