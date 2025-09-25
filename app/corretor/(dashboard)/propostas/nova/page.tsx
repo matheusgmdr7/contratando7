@@ -428,12 +428,15 @@ export default function NovaPropostaPage() {
 
   const handleDependentFileChange = (dependentIndex: number, field: string, e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
+      console.log(`🔍 Upload de arquivo para dependente ${dependentIndex}, campo: ${field}`)
       setDocumentosDependentesUpload((prev) => {
         const updatedDocs = { ...prev }
-        if (!updatedDocs[dependentIndex]) {
-          updatedDocs[dependentIndex] = {}
+        const key = dependentIndex.toString() // Usar string como chave
+        if (!updatedDocs[key]) {
+          updatedDocs[key] = {}
         }
-        updatedDocs[dependentIndex][field] = e.target.files![0]
+        updatedDocs[key][field] = e.target.files![0]
+        console.log(`🔍 Documentos atualizados:`, updatedDocs)
         return updatedDocs
       })
     }
@@ -600,17 +603,24 @@ export default function NovaPropostaPage() {
       })
       
       data.dependentes.forEach((dependente, index) => {
-        const docsDep = documentosDependentesUpload[index]
-        console.log(`🔍 Dependente ${index + 1} documentos:`, {
+        // Usar string como chave para consistência
+        const docsDep = documentosDependentesUpload[index.toString()]
+        console.log(`🔍 Dependente ${index + 1} documentos (chave: ${index}):`, {
           rg_frente: !!docsDep?.rg_frente,
           rg_verso: !!docsDep?.rg_verso,
           comprovante_residencia: !!docsDep?.comprovante_residencia,
-          docsDep_exists: !!docsDep
+          docsDep_exists: !!docsDep,
+          docsDep_keys: docsDep ? Object.keys(docsDep) : []
         })
         
-        if (!docsDep?.rg_frente) camposObrigatoriosVazios.push(`RG (Frente) do Dependente ${index + 1}`)
-        if (!docsDep?.rg_verso) camposObrigatoriosVazios.push(`RG (Verso) do Dependente ${index + 1}`)
-        if (!docsDep?.comprovante_residencia) camposObrigatoriosVazios.push(`Comprovante de Residência do Dependente ${index + 1}`)
+        // Validar apenas se o dependente tem dados preenchidos
+        if (dependente.nome && dependente.nome.trim() !== "") {
+          if (!docsDep?.rg_frente) camposObrigatoriosVazios.push(`RG (Frente) do Dependente ${index + 1}`)
+          if (!docsDep?.rg_verso) camposObrigatoriosVazios.push(`RG (Verso) do Dependente ${index + 1}`)
+          if (!docsDep?.comprovante_residencia) camposObrigatoriosVazios.push(`Comprovante de Residência do Dependente ${index + 1}`)
+        } else {
+          console.log(`🔍 Dependente ${index + 1} não tem nome preenchido, pulando validação de documentos`)
+        }
       })
     } else {
       console.log("🔍 Nenhum dependente para validar ou dependentes vazios")
@@ -2244,14 +2254,14 @@ export default function NovaPropostaPage() {
                               <FormItem>
                                 <FormLabel>RG (Frente)</FormLabel>
                                 <FormControl>
-                                  <label className={`flex items-center gap-2 cursor-pointer px-3 py-2 rounded border border-dashed transition-colors ${documentosDependentesUpload[index] && documentosDependentesUpload[index].rg_frente ? 'bg-green-50 border-green-300' : 'bg-muted hover:bg-muted-foreground/10'}`}> 
+                                  <label className={`flex items-center gap-2 cursor-pointer px-3 py-2 rounded border border-dashed transition-colors ${documentosDependentesUpload[index.toString()] && documentosDependentesUpload[index.toString()].rg_frente ? 'bg-green-50 border-green-300' : 'bg-muted hover:bg-muted-foreground/10'}`}> 
                                     <Upload className="h-4 w-4 text-primary" />
-                                    <span className="text-xs sm:text-sm">{documentosDependentesUpload[index] && documentosDependentesUpload[index].rg_frente ? 'Arquivo selecionado' : 'Selecionar arquivo'}</span>
+                                    <span className="text-xs sm:text-sm">{documentosDependentesUpload[index.toString()] && documentosDependentesUpload[index.toString()].rg_frente ? 'Arquivo selecionado' : 'Selecionar arquivo'}</span>
                                     <input type="file" accept="image/*,application/pdf" onChange={(e) => handleDependentFileChange(index, "rg_frente", e)} className="hidden" />
                                   </label>
                                 </FormControl>
-                                {documentosDependentesUpload[index] && documentosDependentesUpload[index].rg_frente && (
-                                  <span className="block text-xs text-green-700 mt-1 truncate">{documentosDependentesUpload[index].rg_frente.name}</span>
+                                {documentosDependentesUpload[index.toString()] && documentosDependentesUpload[index.toString()].rg_frente && (
+                                  <span className="block text-xs text-green-700 mt-1 truncate">{documentosDependentesUpload[index.toString()].rg_frente.name}</span>
                                 )}
                               </FormItem>
                             </div>
@@ -2259,14 +2269,14 @@ export default function NovaPropostaPage() {
                               <FormItem>
                                 <FormLabel>RG (Verso)</FormLabel>
                                 <FormControl>
-                                  <label className={`flex items-center gap-2 cursor-pointer px-3 py-2 rounded border border-dashed transition-colors ${documentosDependentesUpload[index] && documentosDependentesUpload[index].rg_verso ? 'bg-green-50 border-green-300' : 'bg-muted hover:bg-muted-foreground/10'}`}> 
+                                  <label className={`flex items-center gap-2 cursor-pointer px-3 py-2 rounded border border-dashed transition-colors ${documentosDependentesUpload[index.toString()] && documentosDependentesUpload[index.toString()].rg_verso ? 'bg-green-50 border-green-300' : 'bg-muted hover:bg-muted-foreground/10'}`}> 
                                     <Upload className="h-4 w-4 text-primary" />
-                                    <span className="text-xs sm:text-sm">{documentosDependentesUpload[index] && documentosDependentesUpload[index].rg_verso ? 'Arquivo selecionado' : 'Selecionar arquivo'}</span>
+                                    <span className="text-xs sm:text-sm">{documentosDependentesUpload[index.toString()] && documentosDependentesUpload[index.toString()].rg_verso ? 'Arquivo selecionado' : 'Selecionar arquivo'}</span>
                                     <input type="file" accept="image/*,application/pdf" onChange={(e) => handleDependentFileChange(index, "rg_verso", e)} className="hidden" />
                                   </label>
                                 </FormControl>
-                                {documentosDependentesUpload[index] && documentosDependentesUpload[index].rg_verso && (
-                                  <span className="block text-xs text-green-700 mt-1 truncate">{documentosDependentesUpload[index].rg_verso.name}</span>
+                                {documentosDependentesUpload[index.toString()] && documentosDependentesUpload[index.toString()].rg_verso && (
+                                  <span className="block text-xs text-green-700 mt-1 truncate">{documentosDependentesUpload[index.toString()].rg_verso.name}</span>
                                 )}
                               </FormItem>
                             </div>
@@ -2276,14 +2286,14 @@ export default function NovaPropostaPage() {
                                 <FormItem>
                                   <FormLabel>CPF</FormLabel>
                                   <FormControl>
-                                    <label className={`flex items-center gap-2 cursor-pointer px-3 py-2 rounded border border-dashed transition-colors ${documentosDependentesUpload[index] && documentosDependentesUpload[index].cpf ? 'bg-green-50 border-green-300' : 'bg-muted hover:bg-muted-foreground/10'}`}> 
+                                    <label className={`flex items-center gap-2 cursor-pointer px-3 py-2 rounded border border-dashed transition-colors ${documentosDependentesUpload[index.toString()] && documentosDependentesUpload[index.toString()].cpf ? 'bg-green-50 border-green-300' : 'bg-muted hover:bg-muted-foreground/10'}`}> 
                                       <Upload className="h-4 w-4 text-primary" />
-                                      <span className="text-xs sm:text-sm">{documentosDependentesUpload[index] && documentosDependentesUpload[index].cpf ? 'Arquivo selecionado' : 'Selecionar arquivo'}</span>
+                                      <span className="text-xs sm:text-sm">{documentosDependentesUpload[index.toString()] && documentosDependentesUpload[index.toString()].cpf ? 'Arquivo selecionado' : 'Selecionar arquivo'}</span>
                                       <input type="file" accept="image/*,application/pdf" onChange={(e) => handleDependentFileChange(index, "cpf", e)} className="hidden" />
                                     </label>
                                   </FormControl>
-                                  {documentosDependentesUpload[index] && documentosDependentesUpload[index].cpf && (
-                                    <span className="block text-xs text-green-700 mt-1 truncate">{documentosDependentesUpload[index].cpf.name}</span>
+                                  {documentosDependentesUpload[index.toString()] && documentosDependentesUpload[index.toString()].cpf && (
+                                    <span className="block text-xs text-green-700 mt-1 truncate">{documentosDependentesUpload[index.toString()].cpf.name}</span>
                                   )}
                                 </FormItem>
                               </div>
@@ -2292,14 +2302,14 @@ export default function NovaPropostaPage() {
                                 <FormItem>
                                   <FormLabel>CNS (Cartão Nacional de Saúde)</FormLabel>
                                   <FormControl>
-                                    <label className={`flex items-center gap-2 cursor-pointer px-3 py-2 rounded border border-dashed transition-colors ${documentosDependentesUpload[index] && documentosDependentesUpload[index].cns ? 'bg-green-50 border-green-300' : 'bg-muted hover:bg-muted-foreground/10'}`}> 
+                                    <label className={`flex items-center gap-2 cursor-pointer px-3 py-2 rounded border border-dashed transition-colors ${documentosDependentesUpload[index.toString()] && documentosDependentesUpload[index.toString()].cns ? 'bg-green-50 border-green-300' : 'bg-muted hover:bg-muted-foreground/10'}`}> 
                                       <Upload className="h-4 w-4 text-primary" />
-                                      <span className="text-xs sm:text-sm">{documentosDependentesUpload[index] && documentosDependentesUpload[index].cns ? 'Arquivo selecionado' : 'Selecionar arquivo'}</span>
+                                      <span className="text-xs sm:text-sm">{documentosDependentesUpload[index.toString()] && documentosDependentesUpload[index.toString()].cns ? 'Arquivo selecionado' : 'Selecionar arquivo'}</span>
                                       <input type="file" accept="image/*,application/pdf" onChange={(e) => handleDependentFileChange(index, "cns", e)} className="hidden" />
                                     </label>
                                   </FormControl>
-                                  {documentosDependentesUpload[index] && documentosDependentesUpload[index].cns && (
-                                    <span className="block text-xs text-green-700 mt-1 truncate">{documentosDependentesUpload[index].cns.name}</span>
+                                  {documentosDependentesUpload[index.toString()] && documentosDependentesUpload[index.toString()].cns && (
+                                    <span className="block text-xs text-green-700 mt-1 truncate">{documentosDependentesUpload[index.toString()].cns.name}</span>
                                   )}
                                 </FormItem>
                               </div>
