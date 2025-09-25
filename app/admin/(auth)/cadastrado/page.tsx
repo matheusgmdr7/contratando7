@@ -605,7 +605,7 @@ export default function CadastradoPage() {
       
       if (error) {
         console.error("❌ Erro no teste:", error)
-      } else {
+    } else {
         console.log("✅ Teste bem-sucedido:", data)
       }
     } catch (error) {

@@ -177,9 +177,12 @@ export default function NovaPropostaPage() {
     },
   })
 
-  // Observar mudanças na data de nascimento e produto_id
+  // Observar mudanças na data de nascimento e produto_id - OTIMIZADO
   useEffect(() => {
     const subscription = form.watch((value, { name }) => {
+      // Evitar processamento desnecessário
+      if (!name) return
+      
       if (name === "data_nascimento" || name === "produto_id" || name === "tabela_id") {
         const dataNascimento = form.getValues("data_nascimento")
         const produtoId = form.getValues("produto_id")
@@ -211,7 +214,7 @@ export default function NovaPropostaPage() {
     })
 
     return () => subscription.unsubscribe()
-  }, [form, produtos])
+  }, [form, produtos, calcularValorPorTabelaEIdade, calcularIdadeEValor, carregarDescricaoProduto])
 
   useEffect(() => {
     // Verificar autenticação
@@ -655,8 +658,8 @@ export default function NovaPropostaPage() {
     // Validações específicas
     if (!validarCPF(data.cpf)) {
       toast.error("CPF inválido")
-      return
-    }
+          return
+        }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(data.email)) {
@@ -1168,9 +1171,10 @@ export default function NovaPropostaPage() {
     setDependentesKey((k) => k + 1) // Forçar re-render
   }
 
-  const dependentes = form.watch("dependentes");
-  const produtoId = form.watch("produto_id");
-  const tabelaId = form.watch("tabela_id");
+  // Remover form.watch que causam re-renderizações infinitas
+  // const dependentes = form.watch("dependentes");
+  // const produtoId = form.watch("produto_id");
+  // const tabelaId = form.watch("tabela_id");
 
   // useEffect para calcular valores dos dependentes - REMOVIDO para evitar loop infinito
   // O cálculo de valores dos dependentes agora é feito apenas quando necessário
@@ -1389,32 +1393,32 @@ export default function NovaPropostaPage() {
                   />
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="estado_civil"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Estado Civil</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Selecione o estado civil" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="Solteiro(a)">Solteiro(a)</SelectItem>
-                              <SelectItem value="Casado(a)">Casado(a)</SelectItem>
-                              <SelectItem value="Divorciado(a)">Divorciado(a)</SelectItem>
-                              <SelectItem value="Viúvo(a)">Viúvo(a)</SelectItem>
-                              <SelectItem value="União Estável">União Estável</SelectItem>
-                              <SelectItem value="Separado(a)">Separado(a)</SelectItem>
-                              <SelectItem value="Outro">Outro</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                  <FormField
+                    control={form.control}
+                    name="estado_civil"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Estado Civil</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione o estado civil" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="Solteiro(a)">Solteiro(a)</SelectItem>
+                            <SelectItem value="Casado(a)">Casado(a)</SelectItem>
+                            <SelectItem value="Divorciado(a)">Divorciado(a)</SelectItem>
+                            <SelectItem value="Viúvo(a)">Viúvo(a)</SelectItem>
+                            <SelectItem value="União Estável">União Estável</SelectItem>
+                            <SelectItem value="Separado(a)">Separado(a)</SelectItem>
+                            <SelectItem value="Outro">Outro</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                     
                     <FormField
                       control={form.control}

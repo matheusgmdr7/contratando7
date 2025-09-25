@@ -109,7 +109,7 @@ const processarClientesDasPropostas = (propostas: any[]): Cliente[] => {
         status: isStatusAprovado(proposta.status) ? "ativo" : "pendente",
         data_cadastro: proposta.created_at || new Date().toISOString(),
         ultima_proposta: isStatusAprovado(proposta.status) ? proposta.created_at : undefined,
-        propostas_count: 1,
+          propostas_count: 1,
         propostas_aprovadas: isStatusAprovado(proposta.status) ? 1 : 0,
         valor_total: isStatusAprovado(proposta.status) ? Number(proposta.valor_total || 0) : 0
       }
@@ -213,9 +213,9 @@ export default function ClientesPage() {
             onClick={() => (window.location.href = "/corretor/propostas/nova")} 
             className="bg-[#168979] hover:bg-[#13786a] text-white btn-corporate shadow-corporate"
           >
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Nova Proposta
-          </Button>
+          <PlusCircle className="mr-2 h-4 w-4" />
+          Nova Proposta
+        </Button>
         </div>
       </div>
 
@@ -241,7 +241,7 @@ export default function ClientesPage() {
             <div>
               <CardTitle className="text-sm font-bold text-gray-600 uppercase tracking-wider font-sans">Clientes Ativos</CardTitle>
               <div className="text-3xl font-bold text-[#168979] mt-2">
-                {clientes.filter((c) => c.status === "ativo").length}
+              {clientes.filter((c) => c.status === "ativo").length}
               </div>
             </div>
             <div className="w-14 h-14 bg-gray-100 rounded-xl flex items-center justify-center">
@@ -258,7 +258,7 @@ export default function ClientesPage() {
             <div>
               <CardTitle className="text-sm font-bold text-gray-600 uppercase tracking-wider font-sans">Propostas Enviadas</CardTitle>
               <div className="text-3xl font-bold text-[#168979] mt-2">
-                {clientes.reduce((acc, cliente) => acc + cliente.propostas_count, 0)}
+              {clientes.reduce((acc, cliente) => acc + cliente.propostas_count, 0)}
               </div>
             </div>
             <div className="w-14 h-14 bg-gray-100 rounded-xl flex items-center justify-center">
@@ -328,21 +328,21 @@ export default function ClientesPage() {
             <>
               {/* Desktop Table */}
               <div className="hidden lg:block">
-                <Table>
-                  <TableHeader>
+              <Table>
+                <TableHeader>
                     <TableRow className="bg-gray-100 hover:bg-gray-100">
                       <TableHead className="font-bold text-xs text-gray-700 uppercase tracking-wide">Cliente</TableHead>
                       <TableHead className="font-bold text-xs text-gray-700 uppercase tracking-wide">Contato</TableHead>
                       <TableHead className="font-bold text-xs text-gray-700 uppercase tracking-wide">Status</TableHead>
                       <TableHead className="font-bold text-xs text-gray-700 uppercase tracking-wide">Cadastro</TableHead>
                       <TableHead className="font-bold text-xs text-gray-700 uppercase tracking-wide text-right">Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {clientesFiltrados.map((cliente) => (
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {clientesFiltrados.map((cliente) => (
                       <TableRow key={cliente.id} className="hover:bg-gray-50">
                         <TableCell className="font-semibold">{cliente.nome}</TableCell>
-                        <TableCell>
+                      <TableCell>
                           <div className="flex flex-col space-y-1">
                             <div className="flex items-center gap-2">
                               <Mail className="h-3.5 w-3.5 text-gray-400" />
@@ -351,31 +351,31 @@ export default function ClientesPage() {
                             <div className="flex items-center gap-2">
                               <Phone className="h-3.5 w-3.5 text-gray-400" />
                               <span className="text-sm font-medium">{cliente.telefone}</span>
-                            </div>
                           </div>
-                        </TableCell>
-                        <TableCell>
+                        </div>
+                      </TableCell>
+                      <TableCell>
                         <Badge
                           className={`corporate-rounded font-semibold ${
                             cliente.status === "ativo"
                               ? "bg-green-100 text-green-800 hover:bg-green-100"
-                              : "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
+                                : "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
                           }`}
                         >
                           {cliente.status === "ativo" ? "Ativo" : "Pendente"}
                         </Badge>
-                        </TableCell>
+                      </TableCell>
                         <TableCell className="font-medium">{new Date(cliente.data_cadastro).toLocaleDateString("pt-BR")}</TableCell>
-                        <TableCell className="text-right">
+                      <TableCell className="text-right">
                           <Button size="icon" variant="outline" className="btn-corporate-sm">
                             <Eye className="h-4 w-4" />
                           </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
 
               {/* Mobile Cards */}
               <div className="lg:hidden space-y-4">
