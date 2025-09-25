@@ -690,3 +690,57 @@ html {
     transform: translateY(0);
   }
 }
+
+/* Estilos para inputs com bordas menos arredondadas */
+input[type="text"],
+input[type="email"],
+input[type="tel"],
+input[type="date"],
+input[type="number"],
+input[type="password"],
+textarea,
+select {
+  border-radius: 0.25rem !important;
+}
+
+/* Sobrescrever estilos do shadcn/ui para inputs */
+.input-corporate {
+  border-radius: 0.25rem !important;
+}
+
+/* Estilos específicos para formulários corporativos */
+.form-input-corporate {
+  border-radius: 0.25rem !important;
+  border: 1px solid #d1d5db !important;
+  padding: 0.5rem 0.75rem !important;
+  font-size: 0.875rem !important;
+  line-height: 1.25rem !important;
+  transition: all 0.15s ease-in-out !important;
+}
+
+.form-input-corporate:focus {
+  outline: none !important;
+  border-color: #168979 !important;
+  box-shadow: 0 0 0 3px rgba(22, 137, 121, 0.1) !important;
+}
+
+/* Estilos para selects corporativos */
+.select-corporate {
+  border-radius: 0.25rem !important;
+}
+
+/* Estilos para textareas corporativos */
+.textarea-corporate {
+  border-radius: 0.25rem !important;
+  border: 1px solid #d1d5db !important;
+  padding: 0.5rem 0.75rem !important;
+  font-size: 0.875rem !important;
+  line-height: 1.25rem !important;
+  transition: all 0.15s ease-in-out !important;
+}
+
+.textarea-corporate:focus {
+  outline: none !important;
+  border-color: #168979 !important;
+  box-shadow: 0 0 0 3px rgba(22, 137, 121, 0.1) !important;
+}

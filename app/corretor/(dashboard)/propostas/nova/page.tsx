@@ -87,7 +87,7 @@ const formSchema = z.object({
         peso: z.string().optional(),
         altura: z.string().optional(),
         valor_individual: z.string().optional(),
-        uf_nascimento: z.string().min(1, "UF de nascimento é obrigatório"),
+        uf_nascimento: z.string().optional(),
         sexo: z.enum(["Masculino", "Feminino", "Outro"], {
           required_error: "Sexo é obrigatório",
         }),
@@ -156,10 +156,10 @@ export default function NovaPropostaPage() {
       orgao_emissor: "",
       nome_mae: "",
       sexo: "Masculino" as const, // Valor padrão para campo obrigatório
-      uf_nascimento: "", // Campo obrigatório - usuário deve preencher
+      uf_nascimento: "SP", // Valor padrão para campo obrigatório
       cep: "",
       endereco: "",
-      numero: "",
+      numero: "0",
       complemento: "",
       bairro: "",
       cidade: "",
@@ -624,12 +624,12 @@ export default function NovaPropostaPage() {
     if (camposObrigatoriosVazios.length > 0) {
       console.log("❌ CAMPOS OBRIGATÓRIOS VAZIOS:", camposObrigatoriosVazios)
       console.log("❌ FORMULÁRIO INVÁLIDO - IMPEDINDO ENVIO")
-      const mensagem = `Por favor, preencha os seguintes campos obrigatórios:\n\n• ${camposObrigatoriosVazios.join('\n• ')}`
+      const mensagem = `⚠️ Campos obrigatórios não preenchidos:\n\n• ${camposObrigatoriosVazios.join('\n• ')}\n\nPor favor, preencha todos os campos obrigatórios antes de enviar a proposta.`
       toast.error(mensagem, {
-        duration: 6000,
+        duration: 8000,
         style: {
           whiteSpace: 'pre-line',
-          maxWidth: '400px'
+          maxWidth: '500px'
         }
       })
       return
@@ -639,18 +639,36 @@ export default function NovaPropostaPage() {
 
     // Validações específicas
     if (!validarCPF(data.cpf)) {
-      toast.error("CPF inválido")
-          return
+      console.log("❌ CPF INVÁLIDO - IMPEDINDO ENVIO")
+      toast.error("❌ CPF inválido. Por favor, verifique o número do CPF e tente novamente.", {
+        duration: 6000,
+        style: {
+          maxWidth: '400px'
         }
+      })
+      return
+    }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(data.email)) {
-      toast.error("Email inválido")
+      console.log("❌ EMAIL INVÁLIDO - IMPEDINDO ENVIO")
+      toast.error("❌ Email inválido. Por favor, verifique o endereço de email e tente novamente.", {
+        duration: 6000,
+        style: {
+          maxWidth: '400px'
+        }
+      })
       return
     }
 
     if (data.telefone.replace(/\D/g, "").length < 10) {
-      toast.error("Telefone inválido")
+      console.log("❌ TELEFONE INVÁLIDO - IMPEDINDO ENVIO")
+      toast.error("❌ Telefone inválido. Por favor, verifique o número de telefone e tente novamente.", {
+        duration: 6000,
+        style: {
+          maxWidth: '400px'
+        }
+      })
       return
     }
 
@@ -659,20 +677,38 @@ export default function NovaPropostaPage() {
     const hoje = new Date()
     const idade = hoje.getFullYear() - dataNascimento.getFullYear()
     if (idade < 0 || idade > 120) {
-      toast.error("Data de nascimento inválida")
+      console.log("❌ DATA DE NASCIMENTO INVÁLIDA - IMPEDINDO ENVIO")
+      toast.error("❌ Data de nascimento inválida. Por favor, verifique a data e tente novamente.", {
+        duration: 6000,
+        style: {
+          maxWidth: '400px'
+        }
+      })
       return
     }
 
     // Validar produto selecionado
     if (!data.produto_id) {
-      toast.error("Por favor, selecione um produto")
+      console.log("❌ PRODUTO NÃO SELECIONADO - IMPEDINDO ENVIO")
+      toast.error("❌ Por favor, selecione um produto antes de enviar a proposta.", {
+        duration: 6000,
+        style: {
+          maxWidth: '400px'
+        }
+      })
       return
     }
 
     // Validar valor
     if (!data.valor || parseFloat(data.valor.replace(/[^\d,.-]/g, "").replace(",", ".")) <= 0) {
-      toast.error("Por favor, informe um valor válido")
-          return
+      console.log("❌ VALOR INVÁLIDO - IMPEDINDO ENVIO")
+      toast.error("❌ Por favor, informe um valor válido para a proposta.", {
+        duration: 6000,
+        style: {
+          maxWidth: '400px'
+        }
+      })
+      return
     }
 
     console.log("✅ TODAS AS VALIDAÇÕES PASSARAM - INICIANDO ENVIO...")
@@ -1145,7 +1181,7 @@ export default function NovaPropostaPage() {
         parentesco: "",
         nome_mae: "",
         valor_individual: "",
-        uf_nascimento: "",
+        uf_nascimento: "SP",
         sexo: "Masculino",
         orgao_emissor: "",
         rg_frente: null,
@@ -1190,6 +1226,7 @@ export default function NovaPropostaPage() {
         <CardContent className="p-6">
           <Form {...form}>
             <form onSubmit={(e) => {
+              e.preventDefault() // IMPEDIR RECARREGAMENTO DA PÁGINA
               console.log("📝 FORM SUBMIT EVENT TRIGGERED")
               console.log("🔍 Event:", e)
               console.log("🔍 Formulário válido:", form.formState.isValid)
@@ -1206,7 +1243,61 @@ export default function NovaPropostaPage() {
                 } else {
                   console.log("❌ Formulário inválido - impedindo envio")
                   console.log("❌ Erros específicos:", JSON.stringify(form.formState.errors, null, 2))
-                  toast.error("Por favor, corrija os erros no formulário antes de enviar")
+                  
+                  // Criar mensagem de erro mais detalhada
+                  const erros = form.formState.errors
+                  const camposComErro = []
+                  
+                  if (erros.nome) camposComErro.push("Nome do Cliente")
+                  if (erros.email) camposComErro.push("Email")
+                  if (erros.telefone) camposComErro.push("Telefone")
+                  if (erros.cpf) camposComErro.push("CPF")
+                  if (erros.data_nascimento) camposComErro.push("Data de Nascimento")
+                  if (erros.cns) camposComErro.push("CNS")
+                  if (erros.rg) camposComErro.push("RG")
+                  if (erros.orgao_emissor) camposComErro.push("Órgão Emissor")
+                  if (erros.nome_mae) camposComErro.push("Nome da Mãe")
+                  if (erros.sexo) camposComErro.push("Sexo")
+                  if (erros.uf_nascimento) camposComErro.push("UF de Nascimento")
+                  if (erros.estado_civil) camposComErro.push("Estado Civil")
+                  if (erros.cep) camposComErro.push("CEP")
+                  if (erros.endereco) camposComErro.push("Endereço")
+                  if (erros.numero) camposComErro.push("Número")
+                  if (erros.bairro) camposComErro.push("Bairro")
+                  if (erros.cidade) camposComErro.push("Cidade")
+                  if (erros.estado) camposComErro.push("Estado")
+                  if (erros.produto_id) camposComErro.push("Produto")
+                  if (erros.sigla_plano) camposComErro.push("Código do Plano")
+                  if (erros.valor) camposComErro.push("Valor")
+                  
+                  // Verificar erros de dependentes
+                  if (erros.dependentes && Array.isArray(erros.dependentes)) {
+                    erros.dependentes.forEach((dep, index) => {
+                      if (dep) {
+                        if (dep.nome) camposComErro.push(`Nome do Dependente ${index + 1}`)
+                        if (dep.cpf) camposComErro.push(`CPF do Dependente ${index + 1}`)
+                        if (dep.rg) camposComErro.push(`RG do Dependente ${index + 1}`)
+                        if (dep.data_nascimento) camposComErro.push(`Data de Nascimento do Dependente ${index + 1}`)
+                        if (dep.cns) camposComErro.push(`CNS do Dependente ${index + 1}`)
+                        if (dep.parentesco) camposComErro.push(`Parentesco do Dependente ${index + 1}`)
+                        if (dep.nome_mae) camposComErro.push(`Nome da Mãe do Dependente ${index + 1}`)
+                        if (dep.sexo) camposComErro.push(`Sexo do Dependente ${index + 1}`)
+                        if (dep.orgao_emissor) camposComErro.push(`Órgão Emissor do Dependente ${index + 1}`)
+                      }
+                    })
+                  }
+                  
+                  const mensagem = camposComErro.length > 0 
+                    ? `⚠️ Campos obrigatórios não preenchidos:\n\n• ${camposComErro.join('\n• ')}\n\nPor favor, preencha todos os campos obrigatórios antes de enviar a proposta.`
+                    : "Por favor, corrija os erros no formulário antes de enviar"
+                  
+                  toast.error(mensagem, {
+                    duration: 8000,
+                    style: {
+                      whiteSpace: 'pre-line',
+                      maxWidth: '500px'
+                    }
+                  })
                 }
               })
             }} className="space-y-6">
@@ -2072,6 +2163,28 @@ export default function NovaPropostaPage() {
                                 </FormItem>
                               )}
                             />
+                          </div>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <FormField
+                              control={form.control}
+                              name={`dependentes.${index}.uf_nascimento`}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>UF de Nascimento (Opcional)</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="Ex: SP, RJ, MG" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormItem>
+                              <FormLabel>Órgão Emissor</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Ex: SSP/SP" value={form.getValues(`dependentes.${index}.orgao_emissor`) || ""} readOnly />
+                              </FormControl>
+                            </FormItem>
                           </div>
                         
                           {/* Campos Valor Individual e Produto no final */}
