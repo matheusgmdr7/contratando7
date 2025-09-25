@@ -595,9 +595,19 @@ export default function NovaPropostaPage() {
         
         // Validar apenas se o dependente tem dados preenchidos
         if (dependente.nome && dependente.nome.trim() !== "") {
-          if (!docsDep?.rg_frente) camposObrigatoriosVazios.push(`RG (Frente) do Dependente ${index + 1}`)
-          if (!docsDep?.rg_verso) camposObrigatoriosVazios.push(`RG (Verso) do Dependente ${index + 1}`)
-          if (!docsDep?.comprovante_residencia) camposObrigatoriosVazios.push(`Comprovante de Residência do Dependente ${index + 1}`)
+          console.log(`🔍 Validando documentos do dependente ${index + 1} com nome: ${dependente.nome}`)
+          if (!docsDep?.rg_frente) {
+            console.log(`❌ RG (Frente) do Dependente ${index + 1} está faltando`)
+            camposObrigatoriosVazios.push(`RG (Frente) do Dependente ${index + 1}`)
+          }
+          if (!docsDep?.rg_verso) {
+            console.log(`❌ RG (Verso) do Dependente ${index + 1} está faltando`)
+            camposObrigatoriosVazios.push(`RG (Verso) do Dependente ${index + 1}`)
+          }
+          if (!docsDep?.comprovante_residencia) {
+            console.log(`❌ Comprovante de Residência do Dependente ${index + 1} está faltando`)
+            camposObrigatoriosVazios.push(`Comprovante de Residência do Dependente ${index + 1}`)
+          }
         } else {
           console.log(`🔍 Dependente ${index + 1} não tem nome preenchido, pulando validação de documentos`)
         }
@@ -665,6 +675,7 @@ export default function NovaPropostaPage() {
           return
     }
 
+    console.log("✅ TODAS AS VALIDAÇÕES PASSARAM - INICIANDO ENVIO...")
     setEnviando(true)
     setLoadingProgress(0)
 
@@ -2258,6 +2269,22 @@ export default function NovaPropostaPage() {
                                   </FormControl>
                                   {documentosDependentesUpload[index.toString()] && documentosDependentesUpload[index.toString()].cns && (
                                     <span className="block text-xs text-green-700 mt-1 truncate">{documentosDependentesUpload[index.toString()].cns.name}</span>
+                                  )}
+                                </FormItem>
+                              </div>
+
+                              <div>
+                                <FormItem>
+                                  <FormLabel>Comprovante de Residência</FormLabel>
+                                  <FormControl>
+                                    <label className={`flex items-center gap-2 cursor-pointer px-3 py-2 rounded border border-dashed transition-colors ${documentosDependentesUpload[index.toString()] && documentosDependentesUpload[index.toString()].comprovante_residencia ? 'bg-green-50 border-green-300' : 'bg-muted hover:bg-muted-foreground/10'}`}> 
+                                      <Upload className="h-4 w-4 text-primary" />
+                                      <span className="text-xs sm:text-sm">{documentosDependentesUpload[index.toString()] && documentosDependentesUpload[index.toString()].comprovante_residencia ? 'Arquivo selecionado' : 'Selecionar arquivo'}</span>
+                                      <input type="file" accept="image/*,application/pdf" onChange={(e) => handleDependentFileChange(index, "comprovante_residencia", e)} className="hidden" />
+                                    </label>
+                                  </FormControl>
+                                  {documentosDependentesUpload[index.toString()] && documentosDependentesUpload[index.toString()].comprovante_residencia && (
+                                    <span className="block text-xs text-green-700 mt-1 truncate">{documentosDependentesUpload[index.toString()].comprovante_residencia.name}</span>
                                   )}
                                 </FormItem>
                               </div>
