@@ -177,44 +177,8 @@ export default function NovaPropostaPage() {
     },
   })
 
-  // Observar mudanças na data de nascimento e produto_id - OTIMIZADO
-  useEffect(() => {
-    const subscription = form.watch((value, { name }) => {
-      // Evitar processamento desnecessário
-      if (!name) return
-      
-      if (name === "data_nascimento" || name === "produto_id" || name === "tabela_id") {
-        const dataNascimento = form.getValues("data_nascimento")
-        const produtoId = form.getValues("produto_id")
-        const tabelaId = form.getValues("tabela_id")
-
-        if (dataNascimento && produtoId) {
-          if (tabelaId) {
-            calcularValorPorTabelaEIdade(tabelaId, dataNascimento)
-          } else {
-            calcularIdadeEValor(dataNascimento, produtoId)
-          }
-        }
-      }
-
-      // Carregar descrição do produto quando selecionado
-      if (name === "produto_id") {
-        const produtoId = form.getValues("produto_id")
-        if (produtoId) {
-          carregarDescricaoProduto(produtoId)
-          
-          // Preencher sigla_plano automaticamente
-          const produtoSelecionado = produtos.find(p => p.id.toString() === produtoId)
-          if (produtoSelecionado) {
-            form.setValue("sigla_plano", produtoSelecionado.nome || "")
-            console.log("🔍 Sigla do plano preenchida automaticamente:", produtoSelecionado.nome)
-          }
-        }
-      }
-    })
-
-    return () => subscription.unsubscribe()
-  }, [form, produtos])
+  // REMOVIDO: useEffect que causava loops infinitos
+  // O cálculo de valores agora é feito apenas quando necessário nos campos específicos
 
   useEffect(() => {
     // Verificar autenticação
@@ -646,6 +610,7 @@ export default function NovaPropostaPage() {
     // Se há campos obrigatórios vazios, mostrar mensagem detalhada
     if (camposObrigatoriosVazios.length > 0) {
       console.log("❌ CAMPOS OBRIGATÓRIOS VAZIOS:", camposObrigatoriosVazios)
+      console.log("❌ FORMULÁRIO INVÁLIDO - IMPEDINDO ENVIO")
       const mensagem = `Por favor, preencha os seguintes campos obrigatórios:\n\n• ${camposObrigatoriosVazios.join('\n• ')}`
       toast.error(mensagem, {
         duration: 6000,
@@ -656,6 +621,8 @@ export default function NovaPropostaPage() {
       })
       return
     }
+    
+    console.log("✅ TODOS OS CAMPOS OBRIGATÓRIOS PREENCHIDOS - PROSSEGUINDO COM O ENVIO...")
 
     // Validações específicas
     if (!validarCPF(data.cpf)) {
