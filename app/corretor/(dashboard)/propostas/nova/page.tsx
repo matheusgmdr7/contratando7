@@ -502,7 +502,7 @@ export default function NovaPropostaPage() {
   }
 
   const onSubmit = async (data: FormValues) => {
-    console.log("🚀 Iniciando envio da proposta...")
+    console.log("🚀 INICIANDO ENVIO DA PROPOSTA...")
     console.log("📋 Dados do formulário:", data)
     console.log("📎 Documentos principais:", documentosUpload)
     console.log("👥 Documentos dependentes:", documentosDependentesUpload)
@@ -511,6 +511,7 @@ export default function NovaPropostaPage() {
     console.log("🔍 Erros do formulário:", form.formState.errors)
     
     if (!corretor) {
+      console.log("❌ Dados do corretor não encontrados")
       toast.error("Dados do corretor não encontrados")
       return
     }
@@ -569,6 +570,8 @@ export default function NovaPropostaPage() {
       documentosDependentesUpload_keys: Object.keys(documentosDependentesUpload),
       documentosDependentesUpload: documentosDependentesUpload
     })
+    
+    console.log("🔍 DEBUG - Dados dos dependentes:", data.dependentes)
     
     console.log("🔍 DEBUG - Campos obrigatórios antes da validação de dependentes:", camposObrigatoriosVazios)
     
@@ -1175,7 +1178,11 @@ export default function NovaPropostaPage() {
         </CardHeader>
         <CardContent className="p-6">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={(e) => {
+              console.log("📝 FORM SUBMIT EVENT TRIGGERED")
+              console.log("🔍 Event:", e)
+              form.handleSubmit(onSubmit)(e)
+            }} className="space-y-6">
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <TabsList className="mb-8 overflow-x-auto whitespace-nowrap flex gap-1 sm:grid sm:grid-cols-5 rounded-lg bg-muted p-1">
                   <TabsTrigger value="cliente" className="flex items-center gap-2 px-2 py-1 text-xs sm:text-sm min-w-[100px] sm:min-w-0">
@@ -2264,7 +2271,17 @@ export default function NovaPropostaPage() {
                     <Button type="button" variant="outline" onClick={prevTab}>
                       Voltar
                     </Button>
-                    <Button type="submit" className="bg-[#168979] hover:bg-[#13786a]" disabled={enviando}>
+                    <Button 
+                      type="submit" 
+                      className="bg-[#168979] hover:bg-[#13786a]" 
+                      disabled={enviando}
+                      onClick={() => {
+                        console.log("🖱️ BOTÃO CLICADO!")
+                        console.log("🔍 Estado enviando:", enviando)
+                        console.log("🔍 Formulário válido:", form.formState.isValid)
+                        console.log("🔍 Erros do formulário:", form.formState.errors)
+                      }}
+                    >
                       {enviando ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
