@@ -25,6 +25,7 @@ import { formatarMoeda } from "@/utils/formatters"
 import { UploadService } from "@/services/upload-service"
 import { buscarCorretores } from "@/services/corretores-service"
 import { Textarea } from "@/components/ui/textarea"
+import * as XLSX from 'xlsx'
 
 export default function CadastradoPage() {
   const [propostas, setPropostas] = useState<any[]>([])
@@ -714,6 +715,87 @@ export default function CadastradoPage() {
     return total
   }
 
+  // Função para gerar relatório Excel
+  function gerarRelatorioExcel() {
+    try {
+      console.log("📊 Gerando relatório Excel...")
+      
+      // Preparar dados para o Excel
+      const dadosExcel = propostasFiltradas.map((proposta, index) => {
+        const nomeCliente = obterNomeCliente(proposta)
+        const emailCliente = obterEmailCliente(proposta)
+        const telefoneCliente = obterTelefoneCliente(proposta)
+        const valorTotal = calcularValorTotalMensal(proposta)
+        const statusCompleto = verificarCadastroCompleto(proposta) ? "Completo" : "Pendente"
+        
+        return {
+          "Nº": index + 1,
+          "Nome do Cliente": nomeCliente,
+          "Email": emailCliente,
+          "Telefone": telefoneCliente,
+          "CPF": proposta.cpf || "N/A",
+          "Data de Nascimento": proposta.data_nascimento || "N/A",
+          "Produto": proposta.produto_nome || proposta.produto || proposta.sigla_plano || proposta.plano_nome || "N/A",
+          "Operadora": proposta.operadora || "N/A",
+          "Valor Mensal": formatarMoeda(valorTotal),
+          "Status Cadastro": statusCompleto,
+          "Administradora": proposta.administradora || "N/A",
+          "Data Vencimento": proposta.data_vencimento || "N/A",
+          "Data Vigência": proposta.data_vigencia || "N/A",
+          "Data Criação": formatarDataSegura(proposta.created_at) || "N/A",
+          "Origem": proposta.origem === "propostas_corretores" ? "Corretor" : "Admin",
+          "Qtd Dependentes": proposta.dependentes ? proposta.dependentes.length : 0,
+          "Observações": proposta.observacoes || "N/A"
+        }
+      })
+
+      // Criar workbook
+      const wb = XLSX.utils.book_new()
+      const ws = XLSX.utils.json_to_sheet(dadosExcel)
+
+      // Ajustar largura das colunas
+      const colWidths = [
+        { wch: 5 },   // Nº
+        { wch: 25 },  // Nome do Cliente
+        { wch: 30 },  // Email
+        { wch: 15 },  // Telefone
+        { wch: 15 },  // CPF
+        { wch: 15 },  // Data de Nascimento
+        { wch: 30 },  // Produto
+        { wch: 20 },  // Operadora
+        { wch: 15 },  // Valor Mensal
+        { wch: 15 },  // Status Cadastro
+        { wch: 20 },  // Administradora
+        { wch: 15 },  // Data Vencimento
+        { wch: 15 },  // Data Vigência
+        { wch: 15 },  // Data Criação
+        { wch: 10 },  // Origem
+        { wch: 15 },  // Qtd Dependentes
+        { wch: 30 }   // Observações
+      ]
+      ws['!cols'] = colWidths
+
+      // Adicionar worksheet ao workbook
+      XLSX.utils.book_append_sheet(wb, ws, "Relatório Cadastrados")
+
+      // Gerar nome do arquivo com data e filtros
+      const dataAtual = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')
+      const filtroTexto = filtro ? `_filtro-${filtro.replace(/\s+/g, '_')}` : ""
+      const produtoTexto = produtoFiltro !== "todos" ? `_produto-${produtoFiltro.replace(/\s+/g, '_')}` : ""
+      const nomeArquivo = `relatorio_cadastrados_${dataAtual}${filtroTexto}${produtoTexto}.xlsx`
+
+      // Fazer download
+      XLSX.writeFile(wb, nomeArquivo)
+      
+      toast.success(`Relatório Excel gerado com sucesso! (${dadosExcel.length} registros)`)
+      console.log("✅ Relatório Excel gerado:", nomeArquivo)
+      
+    } catch (error) {
+      console.error("❌ Erro ao gerar relatório Excel:", error)
+      toast.error("Erro ao gerar relatório Excel")
+    }
+  }
+
   // Extrair produtos únicos para o filtro
   const produtosUnicos = Array.from(new Set(
     propostas.map(p => p.produto_nome || p.produto || p.sigla_plano || p.plano_nome)
@@ -878,6 +960,21 @@ export default function CadastradoPage() {
               </SelectContent>
             </Select>
           </div>
+        </div>
+        
+        {/* Botão de Download do Relatório */}
+        <div className="mt-4 flex justify-end">
+          <Button
+            onClick={gerarRelatorioExcel}
+            className="bg-[#168979] hover:bg-[#0f6b5f] text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+            disabled={propostasFiltradas.length === 0}
+          >
+            <Download className="h-4 w-4" />
+            Baixar Relatório Excel
+            <span className="ml-1 text-xs bg-white/20 px-2 py-1 rounded">
+              ({propostasFiltradas.length} registros)
+            </span>
+          </Button>
         </div>
       </div>
 

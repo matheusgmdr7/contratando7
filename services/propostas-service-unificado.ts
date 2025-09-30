@@ -710,12 +710,42 @@ export function obterValorProposta(proposta: any): number {
 export function obterDocumentosInteligente(
   item: any,
   tipo: "titular" | "dependente" = "titular",
+  propostaCompleta?: any, // Adicionar parâmetro para a proposta completa
+  dependenteIndex?: number, // Adicionar índice do dependente
 ): Record<string, string> {
   const documentos: Record<string, string> = {}
 
   if (!item) return documentos
 
-  // Lista de possíveis campos de documentos
+  // Se for dependente e temos a proposta completa, buscar documentos em documentos_dependentes_urls
+  if (tipo === "dependente" && propostaCompleta && typeof dependenteIndex === "number") {
+    console.log(`🔍 Buscando documentos do dependente ${dependenteIndex} na proposta completa`)
+    
+    const documentosDependentes = propostaCompleta.documentos_dependentes_urls
+    if (documentosDependentes && typeof documentosDependentes === "object") {
+      const dependenteKey = dependenteIndex.toString()
+      const docsDependente = documentosDependentes[dependenteKey]
+      
+      if (docsDependente && typeof docsDependente === "object") {
+        console.log(`📄 Documentos encontrados para dependente ${dependenteIndex}:`, Object.keys(docsDependente))
+        
+        // Mapear os documentos do dependente
+        Object.entries(docsDependente).forEach(([tipoDoc, url]) => {
+          if (url && typeof url === "string" && url.trim() !== "") {
+            documentos[tipoDoc] = url
+          }
+        })
+      } else {
+        console.log(`⚠️ Nenhum documento encontrado para dependente ${dependenteIndex}`)
+      }
+    } else {
+      console.log(`⚠️ Campo documentos_dependentes_urls não encontrado na proposta`)
+    }
+    
+    return documentos
+  }
+
+  // Lista de possíveis campos de documentos (para titular)
   const camposDocumentos = [
     "rg_frente_url",
     "rg_verso_url",

@@ -156,7 +156,7 @@ export default function NovaPropostaPage() {
       orgao_emissor: "",
       nome_mae: "",
       sexo: "Masculino" as const, // Valor padrão para campo obrigatório
-      uf_nascimento: "SP", // Valor padrão para campo obrigatório
+      uf_nascimento: "", // Campo opcional - usuário deve preencher
       cep: "",
       endereco: "",
       numero: "0",
@@ -1181,7 +1181,7 @@ export default function NovaPropostaPage() {
         parentesco: "",
         nome_mae: "",
         valor_individual: "",
-        uf_nascimento: "SP",
+        uf_nascimento: "",
         sexo: "Masculino",
         orgao_emissor: "",
         rg_frente: null,
@@ -2179,12 +2179,6 @@ export default function NovaPropostaPage() {
                                 </FormItem>
                               )}
                             />
-                            <FormItem>
-                              <FormLabel>Órgão Emissor</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Ex: SSP/SP" value={form.getValues(`dependentes.${index}.orgao_emissor`) || ""} readOnly />
-                              </FormControl>
-                            </FormItem>
                           </div>
                         
                           {/* Campos Valor Individual e Produto no final */}

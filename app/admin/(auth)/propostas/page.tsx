@@ -2040,7 +2040,7 @@ export default function PropostasPage() {
 
                     {/* Documentos dos Dependentes */}
                     {dependentes.map((dependente: any, index: any) => {
-                      const documentosDep = obterDocumentosInteligente(dependente, "dependente")
+                      const documentosDep = obterDocumentosInteligente(dependente, "dependente", propostaDetalhada, index)
                       if (Object.keys(documentosDep).length > 0) {
                         return renderDocumentos(
                           documentosDep,
