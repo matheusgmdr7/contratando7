@@ -289,47 +289,60 @@ export async function cancelarProposta(id: string, motivo?: string): Promise<boo
   try {
     console.log(`🚫 Cancelando proposta ${id}`)
     
-    // Primeira tentativa: usar colunas específicas de cancelamento (se existirem)
-    const dadosCompletos: any = {
-      status: "cancelada",
-      motivo_cancelamento: motivo || "Cancelada pelo administrador",
-      data_cancelamento: new Date().toISOString(),
-    }
+    // Teste 1: Apenas status (mais simples)
+    console.log("🔍 Teste 1: Apenas status")
+    const { error: error1 } = await supabase
+      .from("propostas")
+      .update({ status: "cancelada" })
+      .eq("id", id)
 
-    // Tentar adicionar updated_at se a coluna existir
-    try {
-      dadosCompletos.updated_at = new Date().toISOString()
-    } catch (error) {
-      console.warn("⚠️ Campo updated_at pode não existir, continuando sem ele")
-    }
-
-    const { error } = await supabase.from("propostas").update(dadosCompletos).eq("id", id)
-
-    if (error) {
-      console.log("🔄 Primeira tentativa falhou, tentando com colunas existentes...")
-      
-      // Segunda tentativa: usar apenas colunas que existem
-      const dadosCompativel: any = {
-        status: "cancelada",
-        motivo_rejeicao: motivo || "Cancelada pelo administrador",
-      }
-
-      const { error: error2 } = await supabase
-        .from("propostas")
-        .update(dadosCompativel)
-        .eq("id", id)
-
-      if (error2) {
-        console.error("❌ Erro ao cancelar proposta:", error2)
-        return false
-      }
-
-      console.log("✅ Proposta cancelada com sucesso (versão compatível)")
+    if (!error1) {
+      console.log("✅ Proposta cancelada com sucesso (apenas status)")
       return true
     }
 
-    console.log("✅ Proposta cancelada com sucesso")
-    return true
+    console.log("❌ Teste 1 falhou:", error1)
+
+    // Teste 2: Status + motivo_rejeicao
+    console.log("🔍 Teste 2: Status + motivo_rejeicao")
+    const { error: error2 } = await supabase
+      .from("propostas")
+      .update({ 
+        status: "cancelada",
+        motivo_rejeicao: motivo || "Cancelada pelo administrador"
+      })
+      .eq("id", id)
+
+    if (!error2) {
+      console.log("✅ Proposta cancelada com sucesso (status + motivo_rejeicao)")
+      return true
+    }
+
+    console.log("❌ Teste 2 falhou:", error2)
+
+    // Teste 3: Colunas específicas de cancelamento
+    console.log("🔍 Teste 3: Colunas específicas de cancelamento")
+    const { error: error3 } = await supabase
+      .from("propostas")
+      .update({ 
+        status: "cancelada",
+        motivo_cancelamento: motivo || "Cancelada pelo administrador",
+        data_cancelamento: new Date().toISOString()
+      })
+      .eq("id", id)
+
+    if (!error3) {
+      console.log("✅ Proposta cancelada com sucesso (colunas específicas)")
+      return true
+    }
+
+    console.log("❌ Teste 3 falhou:", error3)
+    console.error("❌ Todos os testes falharam. Detalhes dos erros:")
+    console.error("Erro 1:", JSON.stringify(error1, null, 2))
+    console.error("Erro 2:", JSON.stringify(error2, null, 2))
+    console.error("Erro 3:", JSON.stringify(error3, null, 2))
+    
+    return false
   } catch (error) {
     console.error("❌ Erro inesperado ao cancelar proposta:", error)
     return false
