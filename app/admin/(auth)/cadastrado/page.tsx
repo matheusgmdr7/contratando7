@@ -816,6 +816,8 @@ export default function CadastradoPage() {
     setPropostaParaCancelar(proposta)
     setMotivoCancelamento("")
     setShowModalCancelamento(true)
+    // Fechar modal de detalhes se estiver aberto
+    setShowModalDetalhes(false)
   }
 
   // Função para cancelar proposta
@@ -1311,17 +1313,6 @@ export default function CadastradoPage() {
                     Completar Cadastro
                   </button>
                 )}
-
-                {/* Botão de Cancelar - só aparece se não estiver cancelada */}
-                {proposta.status !== "cancelada" && (
-                  <button
-                    onClick={() => abrirModalCancelamento(proposta)}
-                    className="text-white bg-red-600 hover:bg-red-700 px-3 py-2 rounded btn-corporate-sm transition-colors text-sm flex items-center justify-center gap-2"
-                  >
-                    <X className="h-4 w-4" />
-                    Cancelar
-                  </button>
-                )}
               </div>
             </div>
           ))}
@@ -1548,6 +1539,18 @@ export default function CadastradoPage() {
                       )}
                     </>
                   )}
+                  
+                  {/* Botão de Cancelar - só aparece se não estiver cancelada */}
+                  {propostaDetalhada && propostaDetalhada.status !== "cancelada" && (
+                    <Button 
+                      onClick={() => abrirModalCancelamento(propostaDetalhada)} 
+                      className="bg-red-600 hover:bg-red-700 text-white"
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      Cancelar Proposta
+                    </Button>
+                  )}
+                  
                   <Button onClick={() => setShowModalDetalhes(false)} variant="outline">
                     Fechar
                   </Button>
