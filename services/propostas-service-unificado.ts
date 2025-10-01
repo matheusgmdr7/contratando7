@@ -289,7 +289,8 @@ export async function cancelarProposta(id: string, motivo?: string): Promise<boo
   try {
     console.log(`🚫 Cancelando proposta ${id}`)
     
-    const dadosAtualizacao: any = {
+    // Primeira tentativa: usar colunas específicas de cancelamento (se existirem)
+    const dadosCompletos: any = {
       status: "cancelada",
       motivo_cancelamento: motivo || "Cancelada pelo administrador",
       data_cancelamento: new Date().toISOString(),
@@ -297,39 +298,34 @@ export async function cancelarProposta(id: string, motivo?: string): Promise<boo
 
     // Tentar adicionar updated_at se a coluna existir
     try {
-      dadosAtualizacao.updated_at = new Date().toISOString()
+      dadosCompletos.updated_at = new Date().toISOString()
     } catch (error) {
       console.warn("⚠️ Campo updated_at pode não existir, continuando sem ele")
     }
 
-    const { error } = await supabase.from("propostas").update(dadosAtualizacao).eq("id", id)
+    const { error } = await supabase.from("propostas").update(dadosCompletos).eq("id", id)
 
     if (error) {
-      console.error("❌ Erro ao cancelar proposta:", error)
-
-      // Se falhar com updated_at, tentar sem ele
-      if (error.message?.includes("updated_at") || error.message?.includes("atualizado_em")) {
-        console.log("🔄 Tentando cancelar sem campo de timestamp...")
-
-        const { error: error2 } = await supabase
-          .from("propostas")
-          .update({
-            status: "cancelada",
-            motivo_cancelamento: motivo || "Cancelada pelo administrador",
-            data_cancelamento: new Date().toISOString(),
-          })
-          .eq("id", id)
-
-        if (error2) {
-          console.error("❌ Erro na segunda tentativa de cancelamento:", error2)
-          return false
-        }
-
-        console.log("✅ Proposta cancelada com sucesso (sem timestamp)")
-        return true
+      console.log("🔄 Primeira tentativa falhou, tentando com colunas existentes...")
+      
+      // Segunda tentativa: usar apenas colunas que existem
+      const dadosCompativel: any = {
+        status: "cancelada",
+        motivo_rejeicao: motivo || "Cancelada pelo administrador",
       }
 
-      return false
+      const { error: error2 } = await supabase
+        .from("propostas")
+        .update(dadosCompativel)
+        .eq("id", id)
+
+      if (error2) {
+        console.error("❌ Erro ao cancelar proposta:", error2)
+        return false
+      }
+
+      console.log("✅ Proposta cancelada com sucesso (versão compatível)")
+      return true
     }
 
     console.log("✅ Proposta cancelada com sucesso")
