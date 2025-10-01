@@ -69,7 +69,7 @@ export async function buscarPropostas(): Promise<PropostaUnificada[]> {
       .map((p) => p.corretor_id)
       .filter((id, index, arr) => arr.indexOf(id) === index) // IDs únicos
 
-    let corretoresData = []
+    let corretoresData: any[] = []
     if (corretoresIds && corretoresIds.length > 0) {
       console.log(`🔍 Buscando dados de ${corretoresIds.length} corretores...`)
 
@@ -291,7 +291,8 @@ export async function cancelarProposta(id: string, motivo?: string): Promise<boo
     
     const dadosAtualizacao: any = {
       status: "cancelada",
-      motivo_rejeicao: motivo || "Cancelada pelo administrador",
+      motivo_cancelamento: motivo || "Cancelada pelo administrador",
+      data_cancelamento: new Date().toISOString(),
     }
 
     // Tentar adicionar updated_at se a coluna existir
@@ -314,7 +315,8 @@ export async function cancelarProposta(id: string, motivo?: string): Promise<boo
           .from("propostas")
           .update({
             status: "cancelada",
-            motivo_rejeicao: motivo || "Cancelada pelo administrador",
+            motivo_cancelamento: motivo || "Cancelada pelo administrador",
+            data_cancelamento: new Date().toISOString(),
           })
           .eq("id", id)
 
