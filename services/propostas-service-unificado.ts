@@ -291,8 +291,7 @@ export async function cancelarProposta(id: string, motivo?: string): Promise<boo
     
     const dadosAtualizacao: any = {
       status: "cancelada",
-      motivo_cancelamento: motivo || "Cancelada pelo administrador",
-      data_cancelamento: new Date().toISOString(),
+      motivo_rejeicao: motivo || "Cancelada pelo administrador",
     }
 
     // Tentar adicionar updated_at se a coluna existir
@@ -315,8 +314,7 @@ export async function cancelarProposta(id: string, motivo?: string): Promise<boo
           .from("propostas")
           .update({
             status: "cancelada",
-            motivo_cancelamento: motivo || "Cancelada pelo administrador",
-            data_cancelamento: new Date().toISOString(),
+            motivo_rejeicao: motivo || "Cancelada pelo administrador",
           })
           .eq("id", id)
 
