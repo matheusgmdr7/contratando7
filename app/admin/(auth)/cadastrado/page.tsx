@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { 
   buscarPropostas, 
   atualizarStatusProposta,
+  cancelarProposta,
   buscarDependentesProposta,
   buscarQuestionarioSaude,
   buscarPropostaCompleta,
@@ -20,7 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Eye, CheckCircle, Calendar, Building, Search, Filter, RefreshCw, Save, UserCheck, ChevronLeft, ChevronRight, Mail, DollarSign, Edit, Heart, FileText, Download } from "lucide-react"
+import { Eye, CheckCircle, Calendar, Building, Search, Filter, RefreshCw, Save, UserCheck, ChevronLeft, ChevronRight, Mail, DollarSign, Edit, Heart, FileText, Download, X, AlertTriangle } from "lucide-react"
 import { formatarMoeda } from "@/utils/formatters"
 import { UploadService } from "@/services/upload-service"
 import { buscarCorretores } from "@/services/corretores-service"
@@ -32,6 +33,7 @@ export default function CadastradoPage() {
   const [loading, setLoading] = useState(true)
   const [filtro, setFiltro] = useState("")
   const [produtoFiltro, setProdutoFiltro] = useState("todos")
+  const [statusFiltro, setStatusFiltro] = useState("todos")
   const [propostaDetalhada, setPropostaDetalhada] = useState<any>(null)
   const [showModalDetalhes, setShowModalDetalhes] = useState(false)
   const [loadingDetalhes, setLoadingDetalhes] = useState(false)
@@ -51,6 +53,13 @@ export default function CadastradoPage() {
   // Estado para modal de cadastro manual
   const [showModalCadastroManual, setShowModalCadastroManual] = useState(false)
   const [corretoresDisponiveis, setCorretoresDisponiveis] = useState<any[]>([])
+  
+  // Estados para modal de cancelamento
+  const [showModalCancelamento, setShowModalCancelamento] = useState(false)
+  const [propostaParaCancelar, setPropostaParaCancelar] = useState<any>(null)
+  const [motivoCancelamento, setMotivoCancelamento] = useState("")
+  const [cancelando, setCancelando] = useState(false)
+  
   const [formManual, setFormManual] = useState({
     nome: "",
     email: "",
@@ -117,9 +126,9 @@ export default function CadastradoPage() {
       setLoading(true)
       console.log("🔄 Carregando propostas aprovadas e cadastradas...")
       const data = await buscarPropostas()
-      // Filtrar propostas com status "aprovada" ou "cadastrado"
+      // Filtrar propostas com status "aprovada", "cadastrado" ou "cancelada"
       const propostasParaCadastro = data.filter((p: any) => 
-        p.status === "aprovada" || p.status === "cadastrado" || p.status === "cadastrada"
+        p.status === "aprovada" || p.status === "cadastrado" || p.status === "cadastrada" || p.status === "cancelada"
       )
       console.log("📊 Propostas para cadastro:", propostasParaCadastro.length)
       console.log("📋 Status encontrados:", [...new Set(data.map((p: any) => p.status))])
@@ -632,6 +641,12 @@ export default function CadastradoPage() {
         color: "bg-blue-100 text-blue-800", 
         icon: CheckCircle
       }
+    } else if (proposta.status === "cancelada") {
+      return {
+        label: "Cancelada",
+        color: "bg-red-100 text-red-800",
+        icon: X
+      }
     } else {
       return {
         label: proposta.status || "Indefinido",
@@ -796,6 +811,51 @@ export default function CadastradoPage() {
     }
   }
 
+  // Função para abrir modal de cancelamento
+  function abrirModalCancelamento(proposta: any) {
+    setPropostaParaCancelar(proposta)
+    setMotivoCancelamento("")
+    setShowModalCancelamento(true)
+  }
+
+  // Função para cancelar proposta
+  async function confirmarCancelamento() {
+    if (!propostaParaCancelar) return
+
+    try {
+      setCancelando(true)
+      console.log("🚫 Cancelando proposta:", propostaParaCancelar.id)
+
+      const sucesso = await cancelarProposta(propostaParaCancelar.id, motivoCancelamento)
+
+      if (sucesso) {
+        toast.success("Proposta cancelada com sucesso!")
+        
+        // Atualizar a lista de propostas
+        await carregarPropostas()
+        
+        // Fechar modal
+        setShowModalCancelamento(false)
+        setPropostaParaCancelar(null)
+        setMotivoCancelamento("")
+      } else {
+        toast.error("Erro ao cancelar proposta. Tente novamente.")
+      }
+    } catch (error) {
+      console.error("❌ Erro ao cancelar proposta:", error)
+      toast.error("Erro ao cancelar proposta")
+    } finally {
+      setCancelando(false)
+    }
+  }
+
+  // Função para fechar modal de cancelamento
+  function fecharModalCancelamento() {
+    setShowModalCancelamento(false)
+    setPropostaParaCancelar(null)
+    setMotivoCancelamento("")
+  }
+
   // Extrair produtos únicos para o filtro
   const produtosUnicos = Array.from(new Set(
     propostas.map(p => p.produto_nome || p.produto || p.sigla_plano || p.plano_nome)
@@ -811,7 +871,10 @@ export default function CadastradoPage() {
     const nomeProduto = proposta.produto_nome || proposta.produto || proposta.sigla_plano || proposta.plano_nome || ""
     const matchesProduto = produtoFiltro === "todos" || nomeProduto === produtoFiltro
 
-    return matchesFiltro && matchesProduto
+    // Filtro por status
+    const matchesStatus = statusFiltro === "todos" || proposta.status === statusFiltro
+
+    return matchesFiltro && matchesProduto && matchesStatus
   })
 
   // Cálculos de paginação
@@ -824,7 +887,7 @@ export default function CadastradoPage() {
   // Reset da página quando filtros mudam
   useEffect(() => {
     setPaginaAtual(1)
-  }, [filtro, produtoFiltro])
+  }, [filtro, produtoFiltro, statusFiltro])
 
   if (loading) {
     return (
@@ -930,7 +993,7 @@ export default function CadastradoPage() {
 
       {/* Filtros */}
       <div className="bg-white p-3 rounded-lg shadow border border-gray-200">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1">Buscar por Nome</label>
             <div className="relative">
@@ -957,6 +1020,21 @@ export default function CadastradoPage() {
                     {produto}
                   </SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Filtrar por Status</label>
+            <Select value={statusFiltro} onValueChange={setStatusFiltro}>
+              <SelectTrigger className="corporate-rounded">
+                <SelectValue placeholder="Todos os status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos os Status</SelectItem>
+                <SelectItem value="aprovada">Aprovada</SelectItem>
+                <SelectItem value="cadastrado">Cadastrado</SelectItem>
+                <SelectItem value="cadastrada">Cadastrada</SelectItem>
+                <SelectItem value="cancelada">Cancelada</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -1233,6 +1311,17 @@ export default function CadastradoPage() {
                     Completar Cadastro
                   </button>
                 )}
+
+                {/* Botão de Cancelar - só aparece se não estiver cancelada */}
+                {proposta.status !== "cancelada" && (
+                  <button
+                    onClick={() => abrirModalCancelamento(proposta)}
+                    className="text-white bg-red-600 hover:bg-red-700 px-3 py-2 rounded btn-corporate-sm transition-colors text-sm flex items-center justify-center gap-2"
+                  >
+                    <X className="h-4 w-4" />
+                    Cancelar
+                  </button>
+                )}
               </div>
             </div>
           ))}
@@ -1242,7 +1331,7 @@ export default function CadastradoPage() {
           <div className="text-center py-12">
             <div className="text-gray-500 text-lg">Nenhum cliente aprovado encontrado</div>
             <div className="text-gray-400 text-sm mt-2">
-              {filtro || produtoFiltro !== "todos"
+              {filtro || produtoFiltro !== "todos" || statusFiltro !== "todos"
                 ? "Tente ajustar os filtros de busca"
                 : "Nenhuma proposta foi aprovada ainda"}
             </div>
@@ -2502,6 +2591,78 @@ export default function CadastradoPage() {
                 </Button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Cancelamento */}
+      {showModalCancelamento && propostaParaCancelar && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md mx-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex-shrink-0 w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                <AlertTriangle className="h-6 w-6 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Cancelar Proposta</h3>
+                <p className="text-sm text-gray-500">Esta ação não pode ser desfeita</p>
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <p className="text-sm text-gray-700 mb-2">
+                <strong>Cliente:</strong> {obterNomeCliente(propostaParaCancelar)}
+              </p>
+              <p className="text-sm text-gray-700 mb-2">
+                <strong>Produto:</strong> {propostaParaCancelar.produto_nome || propostaParaCancelar.produto || propostaParaCancelar.sigla_plano || "N/A"}
+              </p>
+              <p className="text-sm text-gray-700">
+                <strong>Status atual:</strong> {propostaParaCancelar.status}
+              </p>
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Motivo do cancelamento <span className="text-red-500">*</span>
+              </label>
+              <Textarea
+                value={motivoCancelamento}
+                onChange={(e) => setMotivoCancelamento(e.target.value)}
+                placeholder="Digite o motivo do cancelamento..."
+                rows={3}
+                className="w-full"
+                required
+              />
+            </div>
+
+            <div className="flex flex-col sm:flex-row justify-end gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={fecharModalCancelamento}
+                disabled={cancelando}
+              >
+                Manter Proposta
+              </Button>
+              <Button
+                type="button"
+                onClick={confirmarCancelamento}
+                disabled={!motivoCancelamento.trim() || cancelando}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                {cancelando ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    Cancelando...
+                  </>
+                ) : (
+                  <>
+                    <X className="h-4 w-4 mr-2" />
+                    Confirmar Cancelamento
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </div>
       )}

@@ -283,6 +283,64 @@ export async function buscarQuestionarioSaude(
 }
 
 /**
+ * Cancela uma proposta - Nova função específica para cancelamento
+ */
+export async function cancelarProposta(id: string, motivo?: string): Promise<boolean> {
+  try {
+    console.log(`🚫 Cancelando proposta ${id}`)
+    
+    const dadosAtualizacao: any = {
+      status: "cancelada",
+      motivo_cancelamento: motivo || "Cancelada pelo administrador",
+      data_cancelamento: new Date().toISOString(),
+    }
+
+    // Tentar adicionar updated_at se a coluna existir
+    try {
+      dadosAtualizacao.updated_at = new Date().toISOString()
+    } catch (error) {
+      console.warn("⚠️ Campo updated_at pode não existir, continuando sem ele")
+    }
+
+    const { error } = await supabase.from("propostas").update(dadosAtualizacao).eq("id", id)
+
+    if (error) {
+      console.error("❌ Erro ao cancelar proposta:", error)
+
+      // Se falhar com updated_at, tentar sem ele
+      if (error.message?.includes("updated_at") || error.message?.includes("atualizado_em")) {
+        console.log("🔄 Tentando cancelar sem campo de timestamp...")
+
+        const { error: error2 } = await supabase
+          .from("propostas")
+          .update({
+            status: "cancelada",
+            motivo_cancelamento: motivo || "Cancelada pelo administrador",
+            data_cancelamento: new Date().toISOString(),
+          })
+          .eq("id", id)
+
+        if (error2) {
+          console.error("❌ Erro na segunda tentativa de cancelamento:", error2)
+          return false
+        }
+
+        console.log("✅ Proposta cancelada com sucesso (sem timestamp)")
+        return true
+      }
+
+      return false
+    }
+
+    console.log("✅ Proposta cancelada com sucesso")
+    return true
+  } catch (error) {
+    console.error("❌ Erro inesperado ao cancelar proposta:", error)
+    return false
+  }
+}
+
+/**
  * Atualiza o status de uma proposta - CORRIGIDO
  * Agora sempre atualiza na tabela 'propostas'
  */
