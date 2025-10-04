@@ -1,14 +1,53 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { buscarPropostas, atualizarStatusProposta } from "@/services/propostas-service-unificado"
+import { 
+  buscarPropostas, 
+  atualizarStatusProposta, 
+  buscarPropostaCompleta,
+  buscarDependentesProposta,
+  obterNomeCliente,
+  obterEmailCliente,
+  obterTelefoneCliente
+} from "@/services/propostas-service-unificado"
 import { toast } from "sonner"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Eye, CheckCircle, XCircle, Search, Filter, RefreshCw } from "lucide-react"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Eye, CheckCircle, XCircle, Search, Filter, RefreshCw, Heart } from "lucide-react"
 import { formatarMoeda } from "@/utils/formatters"
+import { supabase } from "@/lib/supabase"
+
+// Função para obter o texto da pergunta por ID
+function obterTextoPergunta(perguntaId: number): string {
+  const perguntas = {
+    1: "Teve alguma doença que resultou em internação nos últimos 2 anos? (qual?)",
+    2: "Foi submetido(a) a internações clínicas, cirúrgicas ou psiquiátricas nos últimos 5 anos? Caso positivo, informe quando e qual doença.",
+    3: "Possui alguma doença hereditária ou congênita? (qual?)",
+    4: "É portador de alguma doença que desencadeou sequela física? (qual?)",
+    5: "É portador de alguma doença que necessitará de transplante?",
+    6: "É portador de doença renal que necessite diálise e/ou hemodiálise?",
+    7: "É portador de câncer? (informar a localização)",
+    8: "Tem ou teve alguma doença oftalmológica, como catarata, glaucoma, astigmatismo, miopia, hipermetropia ou outra? Fez cirurgia refrativa?",
+    9: "Tem ou teve alguma doença do ouvido, nariz ou garganta, como sinusite, desvio de septo, amigdalite, otite ou outra?",
+    10: "É portador de alguma doença do aparelho digestivo, como gastrite, úlcera, colite, doença da vesícula biliar ou outras?",
+    11: "É portador de alguma doença ortopédica como hérnia de disco, osteoporose ou outros?",
+    12: "É portador de alguma doença neurológica como mal de Parkinson, doenças de Alzheimer, epilepsia ou outros?",
+    13: "É portador de alguma doença cardíaca, circulatória (varizes e outras), hipertensiva ou diabetes?",
+    14: "É portador de alguma doença ginecológica / urológica?",
+    15: "É portador de hérnia inguinal, umbilical, incisional ou outras?",
+    16: "É portador de alguma doença infectocontagiosa, inclusive AIDS ou hepatite?",
+    17: "É portador de alguma doença psiquiátrica, como depressão, esquizofrenia, demência, alcoolismo, dependência de drogas ou outra?",
+    18: "Teve alguma patologia que necessitou de tratamento psicológico ou psicoterápico? (qual?)",
+    19: "É portador ou já sofreu de alguma doença do aparelho respiratório, como asma, doença pulmonar obstrutiva crônica, bronquite, enfisema ou outra?",
+    20: "Tem ou teve alguma doença não relacionada nas perguntas anteriores?",
+    21: "É gestante?"
+  }
+  
+  return perguntas[perguntaId as keyof typeof perguntas] || "Pergunta não disponível"
+}
 
 export default function EmAnalisePage() {
   const [propostas, setPropostas] = useState<any[]>([])
@@ -20,6 +59,8 @@ export default function EmAnalisePage() {
   const [showModalRejeicao, setShowModalRejeicao] = useState(false)
   const [showModalDetalhes, setShowModalDetalhes] = useState(false)
   const [loadingDetalhes, setLoadingDetalhes] = useState(false)
+  const [dependentes, setDependentes] = useState<any[]>([])
+  const [questionariosSaude, setQuestionariosSaude] = useState<any[]>([])
 
   // Paginação
   const [paginaAtual, setPaginaAtual] = useState(1)
@@ -87,14 +128,134 @@ export default function EmAnalisePage() {
   async function carregarDetalhesCompletos(proposta: any) {
     try {
       setLoadingDetalhes(true)
-      // Aqui você pode carregar detalhes adicionais se necessário
-      // Por enquanto, vamos usar os dados básicos da proposta
+      console.log("🔍 CARREGANDO DETALHES COMPLETOS - EM ANÁLISE")
+      console.log("📋 Proposta ID:", proposta.id)
+
+      // 1. Buscar dados completos da proposta
+      const propostaCompleta = await buscarPropostaCompleta(proposta.id)
+      setPropostaDetalhada(propostaCompleta as any)
+
+      // 2. Carregar dependentes
+      let dependentesData = await buscarDependentesProposta(proposta.id)
+      if (!dependentesData || dependentesData.length === 0) {
+        // Tentar parsear do campo dependentes
+        try {
+          if (proposta.dependentes && typeof proposta.dependentes === 'string') {
+            dependentesData = JSON.parse(proposta.dependentes)
+          } else if (Array.isArray(proposta.dependentes)) {
+            dependentesData = proposta.dependentes
+          }
+        } catch {
+          dependentesData = []
+        }
+      }
+      setDependentes(dependentesData)
+
+      // 3. Buscar questionários de saúde
+      let questionariosData = []
+      
+      // Primeiro tentar buscar na tabela questionario_respostas
+      const { data: questionariosRespostas, error: errorQuestionariosRespostas } = await supabase
+        .from("questionario_respostas")
+        .select("*, respostas_questionario(*)")
+        .eq("proposta_id", proposta.id)
+      
+      if (!errorQuestionariosRespostas && questionariosRespostas && questionariosRespostas.length > 0) {
+        console.log("✅ Questionário encontrado em questionario_respostas:", questionariosRespostas.length)
+        questionariosData = questionariosRespostas
+      } else {
+        console.log("ℹ️ Nenhum questionário em questionario_respostas, tentando questionario_saude...")
+        
+        // Fallback para a tabela questionario_saude
+        const { data: questionariosSaude, error: errorQuestionariosSaude } = await supabase
+          .from("questionario_saude")
+          .select("*")
+          .eq("proposta_id", proposta.id)
+          .order("pergunta_id", { ascending: true })
+        
+        if (!errorQuestionariosSaude && questionariosSaude && questionariosSaude.length > 0) {
+          console.log("✅ Questionário encontrado em questionario_saude:", questionariosSaude.length)
+          questionariosData = questionariosSaude
+        } else {
+          console.log("ℹ️ Nenhum questionário encontrado em nenhuma tabela")
+        }
+      }
+      
+      setQuestionariosSaude(questionariosData)
+      
+      console.log("🎯 RESUMO DO CARREGAMENTO:")
+      console.log("📋 Proposta completa:", !!propostaCompleta)
+      console.log("👨‍👩‍👧‍👦 Dependentes:", dependentesData?.length || 0)
+      console.log("🏥 Questionários:", questionariosData?.length || 0)
+
     } catch (error) {
-      console.error("Erro ao carregar detalhes:", error)
+      console.error("❌ Erro ao carregar detalhes:", error)
       toast.error("Erro ao carregar detalhes da proposta")
     } finally {
       setLoadingDetalhes(false)
     }
+  }
+
+  function renderDeclaracaoSaudeUnificada() {
+    if (!questionariosSaude || questionariosSaude.length === 0) {
+      return (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Heart className="h-5 w-5 text-red-500" />
+              Declaração de Saúde
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-gray-500">Nenhuma resposta encontrada</p>
+          </CardContent>
+        </Card>
+      )
+    }
+    return (
+      <div className="space-y-6">
+        {questionariosSaude.map((q, idx) => (
+          <Card key={q.id || idx}>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Heart className="h-5 w-5 text-red-500" />
+                {q.pessoa_tipo === "titular"
+                  ? "Declaração de Saúde - Titular"
+                  : `Declaração de Saúde - ${q.pessoa_nome}`}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="mb-2 text-sm text-gray-700">
+                <span className="mr-4">Peso: <b>{q.peso || "-"} kg</b></span>
+                <span>Altura: <b>{q.altura || "-"} cm</b></span>
+              </div>
+              {q.respostas_questionario && q.respostas_questionario.length > 0 ? (
+                // Remover duplicatas baseado em pergunta_id
+                Array.from(new Map(q.respostas_questionario.map((r: any) => [r.pergunta_id, r])).values())
+                  .map((resposta: any, i: any) => (
+                    <div key={`${q.id}-${resposta.pergunta_id}-${i}`} className="border-l-4 border-blue-200 pl-4 py-2 mb-2">
+                      <div className="font-medium text-gray-900 mb-1">Pergunta {resposta.pergunta_id}</div>
+                      <div className="text-sm text-gray-600 mb-2">
+                        {resposta.pergunta_texto || resposta.pergunta || obterTextoPergunta(resposta.pergunta_id)}
+                      </div>
+                      <div className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${resposta.resposta === "sim" || resposta.resposta === true ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"}`}>
+                        {resposta.resposta === "sim" || resposta.resposta === true ? "SIM" : "NÃO"}
+                      </div>
+                      {resposta.observacao && (
+                        <div className="mt-2 text-sm text-gray-700 bg-gray-50 p-2 rounded">
+                          <strong>Observações:</strong> {resposta.observacao}
+                        </div>
+                      )}
+                    </div>
+                  ))
+              ) : (
+                <div className="text-gray-500">Nenhuma resposta encontrada</div>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    )
   }
 
   function obterNomeCliente(proposta: any) {
@@ -497,59 +658,70 @@ export default function EmAnalisePage() {
                   </div>
                 </div>
               ) : (
-                <div className="space-y-6">
-                  {/* Dados do Cliente */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Dados do Cliente</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="text-sm font-medium text-gray-700">Nome</label>
-                          <p className="text-gray-900">{obterNomeCliente(propostaDetalhada)}</p>
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium text-gray-700">Email</label>
-                          <p className="text-gray-900">{obterEmailCliente(propostaDetalhada)}</p>
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium text-gray-700">Telefone</label>
-                          <p className="text-gray-900">
-                            {propostaDetalhada.telefone || propostaDetalhada.celular || "Não informado"}
-                          </p>
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium text-gray-700">Valor</label>
-                          <p className="text-gray-900">
-                            {propostaDetalhada.valor ? formatarMoeda(propostaDetalhada.valor) : "Não informado"}
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                <Tabs defaultValue="dados" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="dados">Dados Pessoais</TabsTrigger>
+                    <TabsTrigger value="saude">Declaração de Saúde</TabsTrigger>
+                  </TabsList>
 
-                  {/* Ações */}
-                  <div className="flex justify-end space-x-3">
-                    <button
-                      onClick={() => aprovarProposta(propostaDetalhada.id)}
-                      className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors flex items-center"
-                    >
-                      <CheckCircle className="h-4 w-4 mr-2" />
-                      Aprovar
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowModalDetalhes(false)
-                        abrirModalRejeicao(propostaDetalhada)
-                      }}
-                      className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors flex items-center"
-                    >
-                      <XCircle className="h-4 w-4 mr-2" />
-                      Reprovar
-                    </button>
-                  </div>
-                </div>
+                  <TabsContent value="dados" className="space-y-6 mt-6">
+                    {/* Dados do Cliente */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Dados do Cliente</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-sm font-medium text-gray-700">Nome</label>
+                            <p className="text-gray-900">{obterNomeCliente(propostaDetalhada)}</p>
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium text-gray-700">Email</label>
+                            <p className="text-gray-900">{obterEmailCliente(propostaDetalhada)}</p>
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium text-gray-700">Telefone</label>
+                            <p className="text-gray-900">
+                              {propostaDetalhada.telefone || propostaDetalhada.celular || "Não informado"}
+                            </p>
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium text-gray-700">Valor</label>
+                            <p className="text-gray-900">
+                              {propostaDetalhada.valor ? formatarMoeda(propostaDetalhada.valor) : "Não informado"}
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Ações */}
+                    <div className="flex justify-end space-x-3">
+                      <button
+                        onClick={() => aprovarProposta(propostaDetalhada.id)}
+                        className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors flex items-center"
+                      >
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        Aprovar
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowModalDetalhes(false)
+                          abrirModalRejeicao(propostaDetalhada)
+                        }}
+                        className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors flex items-center"
+                      >
+                        <XCircle className="h-4 w-4 mr-2" />
+                        Reprovar
+                      </button>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="saude" className="space-y-6 mt-6">
+                    {renderDeclaracaoSaudeUnificada()}
+                  </TabsContent>
+                </Tabs>
               )}
             </div>
           </div>

@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { AlertCircle, Search, FileText, Calendar, User, Phone, Mail, Package, DollarSign } from "lucide-react"
+import { AlertCircle, Search, FileText, Calendar, User, Phone, Mail, Package, DollarSign, Eye, X, Download } from "lucide-react"
 import { buscarPropostasPorCorretor } from "@/services/propostas-service-unificado"
 import { verificarAutenticacao } from "@/services/auth-corretores-simples"
 import { Spinner } from "@/components/ui/spinner"
@@ -37,12 +37,61 @@ const isStatusAprovado = (status: string): boolean => {
   return statusAprovados.includes(status?.toLowerCase())
 }
 
+// Função para calcular valor total incluindo dependentes
+const calcularValorTotalComDependentes = (proposta: any): number => {
+  let total = 0
+  
+  // Valor do titular
+  const valorTitular = proposta.valor_total || proposta.valor || proposta.valor_proposta || proposta.valor_plano || 0
+  if (valorTitular) {
+    const valorNumerico = Number(valorTitular)
+    if (!isNaN(valorNumerico)) {
+      total += valorNumerico
+    }
+  }
+  
+  // Valores dos dependentes
+  if (proposta.dependentes_dados && Array.isArray(proposta.dependentes_dados)) {
+    proposta.dependentes_dados.forEach((dep: any) => {
+      const valorDep = dep.valor_individual || dep.valor || dep.valor_plano || 0
+      if (valorDep) {
+        const valorDepNumerico = Number(valorDep)
+        if (!isNaN(valorDepNumerico)) {
+          total += valorDepNumerico
+        }
+      }
+    })
+  } else if (proposta.dependentes && typeof proposta.dependentes === 'string') {
+    try {
+      const dependentes = JSON.parse(proposta.dependentes)
+      if (Array.isArray(dependentes)) {
+        dependentes.forEach((dep: any) => {
+          const valorDep = dep.valor_individual || dep.valor || dep.valor_plano || 0
+          if (valorDep) {
+            const valorDepNumerico = Number(valorDep)
+            if (!isNaN(valorDepNumerico)) {
+              total += valorDepNumerico
+            }
+          }
+        })
+      }
+    } catch (error) {
+      console.warn('Erro ao parsear dependentes:', error)
+    }
+  }
+  
+  return total
+}
+
 export default function CorretorPropostasPage() {
   const [propostas, setPropostas] = useState<any[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [filtroStatus, setFiltroStatus] = useState("Todos")
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
+  const [showModalPDF, setShowModalPDF] = useState(false)
+  const [propostaSelecionada, setPropostaSelecionada] = useState<any>(null)
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const router = useRouter()
 
   // Teste da função formatarMoeda
@@ -87,6 +136,75 @@ export default function CorretorPropostasPage() {
     const matchStatus = filtroStatus === "Todos" || proposta.status === filtroStatus
     return matchSearch && matchStatus
   })
+
+  // Função para visualizar PDF da proposta
+  const visualizarPDF = async (proposta: any) => {
+    try {
+      setPropostaSelecionada(proposta)
+      setShowModalPDF(true)
+      
+      // Se já existe PDF gerado, usar ele
+      if (proposta.pdf_url) {
+        setPdfUrl(proposta.pdf_url)
+        return
+      }
+      
+      // Se não existe PDF, gerar um novo
+      setPdfUrl(null)
+      
+      // Aqui você pode implementar a geração de PDF se necessário
+      // Por enquanto, vamos mostrar uma mensagem
+      console.log("PDF não disponível para esta proposta:", proposta.id)
+      
+    } catch (error) {
+      console.error("Erro ao visualizar PDF:", error)
+    }
+  }
+
+  // Função para fechar modal
+  const fecharModalPDF = () => {
+    setShowModalPDF(false)
+    setPropostaSelecionada(null)
+    setPdfUrl(null)
+  }
+
+  // Função para download do PDF
+  const downloadPDF = async () => {
+    if (pdfUrl) {
+      try {
+        // Fazer download direto via fetch
+        const response = await fetch(pdfUrl)
+        const blob = await response.blob()
+        
+        // Criar URL do blob
+        const blobUrl = window.URL.createObjectURL(blob)
+        
+        // Criar link de download
+        const link = document.createElement('a')
+        link.href = blobUrl
+        link.download = `proposta_${propostaSelecionada?.nome_cliente?.replace(/\s+/g, '_') || 'cliente'}_${propostaSelecionada?.id || 'proposta'}.pdf`
+        
+        // Adicionar ao DOM temporariamente
+        document.body.appendChild(link)
+        link.click()
+        
+        // Limpar
+        document.body.removeChild(link)
+        window.URL.revokeObjectURL(blobUrl)
+        
+      } catch (error) {
+        console.error('Erro ao baixar PDF:', error)
+        // Fallback: download via link direto
+        const link = document.createElement('a')
+        link.href = pdfUrl
+        link.download = `proposta_${propostaSelecionada?.nome_cliente?.replace(/\s+/g, '_') || 'cliente'}_${propostaSelecionada?.id || 'proposta'}.pdf`
+        link.style.display = 'none'
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+      }
+    }
+  }
 
   if (erro) {
     return (
@@ -163,6 +281,7 @@ export default function CorretorPropostasPage() {
             </Select>
           </div>
 
+
           {/* Desktop Table */}
           <div className="hidden lg:block table-responsive-mobile">
             <Table>
@@ -174,12 +293,13 @@ export default function CorretorPropostasPage() {
                   <TableHead className="font-bold text-xs text-gray-700 uppercase tracking-wide">Data</TableHead>
                   <TableHead className="font-bold text-xs text-gray-700 uppercase tracking-wide">Status</TableHead>
                   <TableHead className="font-bold text-xs text-gray-700 uppercase tracking-wide">Valor</TableHead>
+                  <TableHead className="font-bold text-xs text-gray-700 uppercase tracking-wide">Propostas</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {carregando ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-12">
+                    <TableCell colSpan={7} className="text-center py-12">
                       <div className="flex flex-col items-center">
                         <div className="loading-corporate mb-4"></div>
                         <p className="loading-text-corporate">Carregando propostas...</p>
@@ -188,7 +308,7 @@ export default function CorretorPropostasPage() {
                   </TableRow>
                 ) : propostasFiltradas.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-12">
+                    <TableCell colSpan={7} className="text-center py-12">
                       <div className="flex flex-col items-center">
                         <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center mb-4">
                           <FileText className="h-8 w-8 text-gray-400" />
@@ -234,7 +354,21 @@ export default function CorretorPropostasPage() {
                           {mapearStatusProposta(proposta.status).label}
                         </span>
                       </TableCell>
-                      <TableCell className="font-bold text-[#168979]">{proposta.valor_total > 0 ? formatarMoeda(proposta.valor_total) : "-"}</TableCell>
+                      <TableCell className="font-bold text-[#168979]">
+                        {(() => {
+                          const valorTotal = calcularValorTotalComDependentes(proposta)
+                          return valorTotal > 0 ? formatarMoeda(valorTotal) : "-"
+                        })()}
+                      </TableCell>
+                      <TableCell className="text-left">
+                        <Button
+                          onClick={() => visualizarPDF(proposta)}
+                          className="bg-[#168979] hover:bg-[#13786a] text-white p-2 rounded transition-colors"
+                          title="Visualizar PDF da proposta"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))
                 )}
@@ -326,7 +460,10 @@ export default function CorretorPropostasPage() {
                         <span className="text-xs text-gray-500 font-medium">VALOR TOTAL</span>
                       </div>
                       <div className="text-2xl font-bold text-[#168979]">
-                        {proposta.valor_total > 0 ? formatarMoeda(proposta.valor_total) : "Não definido"}
+                        {(() => {
+                          const valorTotal = calcularValorTotalComDependentes(proposta)
+                          return valorTotal > 0 ? formatarMoeda(valorTotal) : "Não definido"
+                        })()}
                       </div>
                     </div>
                   </div>
@@ -340,12 +477,98 @@ export default function CorretorPropostasPage() {
                       </div>
                     </div>
                   )}
+                  
+                  {/* Botão de Ações */}
+                  <div className="mt-4 pt-3 border-t border-gray-100">
+                    <Button
+                      onClick={() => visualizarPDF(proposta)}
+                      className="w-full bg-[#168979] hover:bg-[#13786a] text-white px-4 py-2 text-sm font-medium rounded transition-colors"
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      Visualizar PDF
+                    </Button>
+                  </div>
                 </div>
               ))
             )}
           </div>
         </CardContent>
       </Card>
+
+      {/* Modal de Visualização de PDF */}
+      {showModalPDF && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2">
+          <div className="bg-white rounded-lg shadow-xl w-full h-full max-w-7xl max-h-[95vh] flex flex-col">
+            {/* Header do Modal */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50">
+              <div className="flex items-center gap-3">
+                <FileText className="h-6 w-6 text-[#168979]" />
+                <h3 className="text-xl font-bold text-gray-900">
+                  Proposta - {propostaSelecionada?.nome_cliente || "Cliente"}
+                </h3>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={fecharModalPDF}
+                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 p-2 rounded"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            
+            {/* Conteúdo do Modal */}
+            <div className="flex-1 p-4 overflow-hidden bg-gray-50">
+              {pdfUrl ? (
+                <div className="w-full h-full bg-white rounded-lg shadow-sm overflow-hidden flex flex-col">
+                  {/* Controles do PDF */}
+                  <div className="bg-gray-100 p-3 border-b border-gray-200 flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <FileText className="h-4 w-4" />
+                      <span>Visualização Segura - Somente Leitura</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        onClick={downloadPDF}
+                        className="bg-[#168979] hover:bg-[#13786a] text-white px-3 py-1 text-sm rounded flex items-center gap-1"
+                      >
+                        <Download className="h-3 w-3" />
+                        Baixar
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  {/* Visualizador PDF Simplificado */}
+                  <div className="flex-1 overflow-hidden">
+                    <iframe
+                      src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=1&disableforms=1`}
+                      className="w-full h-full border-0"
+                      title="PDF da Proposta - Visualização Segura"
+                      style={{ pointerEvents: 'auto' }}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-center bg-white rounded-lg shadow-sm">
+                  <FileText className="h-20 w-20 text-gray-400 mb-6" />
+                  <h4 className="text-2xl font-semibold text-gray-900 mb-3">
+                    PDF não disponível
+                  </h4>
+                  <p className="text-gray-600 mb-6 max-w-md">
+                    O PDF desta proposta ainda não foi gerado. Entre em contato com o administrador para mais informações.
+                  </p>
+                  <Button
+                    onClick={fecharModalPDF}
+                    className="bg-[#168979] hover:bg-[#13786a] text-white px-6 py-3 rounded text-lg"
+                  >
+                    Fechar
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

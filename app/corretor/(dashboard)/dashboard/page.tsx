@@ -445,6 +445,7 @@ export default function CorretorDashboardPage() {
                 </p>
               </CardContent>
             </Card>
+
           </div>
 
           {/* Performance Indicator */}

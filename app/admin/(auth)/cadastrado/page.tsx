@@ -4,14 +4,14 @@ import { useState, useEffect } from "react"
 import { 
   buscarPropostas, 
   atualizarStatusProposta,
-  cancelarProposta,
   buscarDependentesProposta,
   buscarQuestionarioSaude,
   buscarPropostaCompleta,
   obterDocumentosInteligente,
   obterNomeCliente,
   obterEmailCliente,
-  obterTelefoneCliente
+  obterTelefoneCliente,
+  cancelarProposta
 } from "@/services/propostas-service-unificado"
 import { criarProposta } from "@/services/propostas-service-unificado"
 import { supabase } from "@/lib/supabase"
@@ -21,26 +21,53 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Eye, CheckCircle, Calendar, Building, Search, Filter, RefreshCw, Save, UserCheck, ChevronLeft, ChevronRight, Mail, DollarSign, Edit, Heart, FileText, Download, X, AlertTriangle } from "lucide-react"
+import { Eye, CheckCircle, Calendar, Building, Search, Filter, RefreshCw, UserCheck, ChevronLeft, ChevronRight, Mail, DollarSign, Heart, FileText, Download, X } from "lucide-react"
 import { formatarMoeda } from "@/utils/formatters"
 import { UploadService } from "@/services/upload-service"
 import { buscarCorretores } from "@/services/corretores-service"
 import { Textarea } from "@/components/ui/textarea"
 import * as XLSX from 'xlsx'
 
+// Função para obter o texto da pergunta por ID
+function obterTextoPergunta(perguntaId: number): string {
+  const perguntas = {
+    1: "Teve alguma doença que resultou em internação nos últimos 2 anos? (qual?)",
+    2: "Foi submetido(a) a internações clínicas, cirúrgicas ou psiquiátricas nos últimos 5 anos? Caso positivo, informe quando e qual doença.",
+    3: "Possui alguma doença hereditária ou congênita? (qual?)",
+    4: "É portador de alguma doença que desencadeou sequela física? (qual?)",
+    5: "É portador de alguma doença que necessitará de transplante?",
+    6: "É portador de doença renal que necessite diálise e/ou hemodiálise?",
+    7: "É portador de câncer? (informar a localização)",
+    8: "Tem ou teve alguma doença oftalmológica, como catarata, glaucoma, astigmatismo, miopia, hipermetropia ou outra? Fez cirurgia refrativa?",
+    9: "Tem ou teve alguma doença do ouvido, nariz ou garganta, como sinusite, desvio de septo, amigdalite, otite ou outra?",
+    10: "É portador de alguma doença do aparelho digestivo, como gastrite, úlcera, colite, doença da vesícula biliar ou outras?",
+    11: "É portador de alguma doença ortopédica como hérnia de disco, osteoporose ou outros?",
+    12: "É portador de alguma doença neurológica como mal de Parkinson, doenças de Alzheimer, epilepsia ou outros?",
+    13: "É portador de alguma doença cardíaca, circulatória (varizes e outras), hipertensiva ou diabetes?",
+    14: "É portador de alguma doença ginecológica / urológica?",
+    15: "É portador de hérnia inguinal, umbilical, incisional ou outras?",
+    16: "É portador de alguma doença infectocontagiosa, inclusive AIDS ou hepatite?",
+    17: "É portador de alguma doença psiquiátrica, como depressão, esquizofrenia, demência, alcoolismo, dependência de drogas ou outra?",
+    18: "Teve alguma patologia que necessitou de tratamento psicológico ou psicoterápico? (qual?)",
+    19: "É portador ou já sofreu de alguma doença do aparelho respiratório, como asma, doença pulmonar obstrutiva crônica, bronquite, enfisema ou outra?",
+    20: "Tem ou teve alguma doença não relacionada nas perguntas anteriores?",
+    21: "É gestante?"
+  }
+  
+  return perguntas[perguntaId as keyof typeof perguntas] || "Pergunta não disponível"
+}
+
 export default function CadastradoPage() {
   const [propostas, setPropostas] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [filtro, setFiltro] = useState("")
   const [produtoFiltro, setProdutoFiltro] = useState("todos")
-  const [statusFiltro, setStatusFiltro] = useState("todos")
   const [propostaDetalhada, setPropostaDetalhada] = useState<any>(null)
   const [showModalDetalhes, setShowModalDetalhes] = useState(false)
   const [loadingDetalhes, setLoadingDetalhes] = useState(false)
   const [dependentes, setDependentes] = useState<any[]>([])
   const [questionariosSaude, setQuestionariosSaude] = useState<any[]>([])
-  const [editMode, setEditMode] = useState(false)
-  const [editData, setEditData] = useState<any>({})
+  // Removido: editMode e editData - função de edição removida
   const [showModalCadastro, setShowModalCadastro] = useState(false)
   const [propostaCadastro, setPropostaCadastro] = useState<any>(null)
 
@@ -53,13 +80,6 @@ export default function CadastradoPage() {
   // Estado para modal de cadastro manual
   const [showModalCadastroManual, setShowModalCadastroManual] = useState(false)
   const [corretoresDisponiveis, setCorretoresDisponiveis] = useState<any[]>([])
-  
-  // Estados para modal de cancelamento
-  const [showModalCancelamento, setShowModalCancelamento] = useState(false)
-  const [propostaParaCancelar, setPropostaParaCancelar] = useState<any>(null)
-  const [motivoCancelamento, setMotivoCancelamento] = useState("")
-  const [cancelando, setCancelando] = useState(false)
-  
   const [formManual, setFormManual] = useState({
     nome: "",
     email: "",
@@ -126,9 +146,9 @@ export default function CadastradoPage() {
       setLoading(true)
       console.log("🔄 Carregando propostas aprovadas e cadastradas...")
       const data = await buscarPropostas()
-      // Filtrar propostas com status "aprovada", "cadastrado" ou "cancelada"
+      // Filtrar propostas com status "aprovada" ou "cadastrado"
       const propostasParaCadastro = data.filter((p: any) => 
-        p.status === "aprovada" || p.status === "cadastrado" || p.status === "cadastrada" || p.status === "cancelada"
+        p.status === "aprovada" || p.status === "cadastrado" || p.status === "cadastrada"
       )
       console.log("📊 Propostas para cadastro:", propostasParaCadastro.length)
       console.log("📋 Status encontrados:", [...new Set(data.map((p: any) => p.status))])
@@ -346,8 +366,6 @@ export default function CadastradoPage() {
   async function abrirModalDetalhes(proposta: any) {
     setPropostaDetalhada(proposta)
     setShowModalDetalhes(true)
-    setEditMode(false)
-    setEditData({})
     await carregarDetalhesCompletos(proposta)
   }
 
@@ -467,161 +485,11 @@ export default function CadastradoPage() {
     }
   }
 
-  function iniciarEdicao() {
-    console.log("🔍 FUNÇÃO INICIAR EDIÇÃO CHAMADA")
-    console.log("🔍 Debug - Dados da proposta detalhada:", propostaDetalhada)
-    console.log("🔍 Estado editMode antes:", editMode)
-    
-    const nomeInicial = obterNomeCliente(propostaDetalhada)
-    const emailInicial = obterEmailCliente(propostaDetalhada)
-    const telefoneInicial = obterTelefoneCliente(propostaDetalhada)
-    
-    console.log("🔍 Nome inicial:", nomeInicial)
-    console.log("🔍 Email inicial:", emailInicial)
-    console.log("🔍 Telefone inicial:", telefoneInicial)
-    
-    setEditMode(true)
-    console.log("🔍 setEditMode(true) executado")
-    setEditData({
-      nome: nomeInicial,
-      email: emailInicial,
-      telefone: telefoneInicial,
-      cpf: propostaDetalhada.cpf || "",
-      rg: propostaDetalhada.rg || "",
-      orgao_emissor: propostaDetalhada.orgao_emissor || propostaDetalhada.orgao_expedidor || "",
-      cns: propostaDetalhada.cns || propostaDetalhada.cns_cliente || "",
-      data_nascimento: propostaDetalhada.data_nascimento || "",
-      sexo: propostaDetalhada.sexo || propostaDetalhada.sexo_cliente || "",
-      estado_civil: propostaDetalhada.estado_civil || propostaDetalhada.estado_civil_cliente || "",
-      uf_nascimento: propostaDetalhada.uf_nascimento || "",
-      nome_mae: propostaDetalhada.nome_mae || propostaDetalhada.nome_mae_cliente || ""
-    })
-  }
+  // Função de edição removida - apenas visualização
 
-  // FUNÇÃO ULTRA SIMPLES - APENAS CAMPOS ESSENCIAIS
-  const salvarEdicao = async () => {
-    console.log("🔧 FUNÇÃO SALVAR - VERSÃO CORRIGIDA")
-    console.log("🔧 Cache limpo, servidor reiniciado")
-    
-    try {
-      console.log("ID da proposta:", propostaDetalhada.id)
-      console.log("Origem da proposta:", propostaDetalhada.origem)
-      console.log("Tipo da origem:", typeof propostaDetalhada.origem)
-      console.log("Origem === 'corretor':", propostaDetalhada.origem === 'corretor')
-      console.log("Origem === 'admin':", propostaDetalhada.origem === 'admin')
-      console.log("🔍 PROPOSTA DETALHADA COMPLETA:", propostaDetalhada)
-      console.log("🔍 CORRETOR_ID:", propostaDetalhada.corretor_id)
-      
-      // Primeiro, verificar em qual tabela o registro existe
-      console.log("🔍 Verificando em qual tabela o registro existe...")
-      
-      // Tentar primeiro na tabela propostas_corretores
-      let tabelaDestino = 'propostas_corretores'
-      let { data: existingRecord, error: checkError } = await supabase
-        .from(tabelaDestino)
-        .select("id")
-        .eq("id", propostaDetalhada.id)
-        .single()
-      
-      // Se não encontrou na propostas_corretores, tentar na propostas
-      if (checkError) {
-        console.log("🔍 Não encontrado em propostas_corretores, tentando propostas...")
-        tabelaDestino = 'propostas'
-        const { data: existingRecord2, error: checkError2 } = await supabase
-          .from(tabelaDestino)
-          .select("id")
-          .eq("id", propostaDetalhada.id)
-          .single()
-        
-        existingRecord = existingRecord2
-        checkError = checkError2
-      }
-      
-      if (checkError) {
-        console.error("❌ Erro ao verificar registro:", checkError)
-        console.error("❌ Registro não existe em nenhuma tabela")
-        toast.error(`Registro não encontrado: ${checkError.message}`)
-        return
-      }
-      
-      console.log("✅ Registro encontrado na tabela:", tabelaDestino)
-      console.log("✅ Registro encontrado:", existingRecord)
-      
-      // Campos baseados na tabela encontrada - FOCANDO APENAS NO EMAIL PARA DEBUG
-      const dadosMinimos = tabelaDestino === 'propostas_corretores' ? {
-        email_cliente: editData.email || propostaDetalhada.email || ""
-      } : {
-        email: editData.email || propostaDetalhada.email || ""
-      }
-      
-      console.log("Dados mínimos:", dadosMinimos)
-      console.log("🔍 EditData completo:", editData)
-      console.log("🔍 Email no editData:", editData.email)
-      console.log("🔍 Email na propostaDetalhada:", propostaDetalhada.email)
-      
-      const { data, error } = await supabase
-        .from(tabelaDestino)
-        .update(dadosMinimos)
-        .eq("id", propostaDetalhada.id)
-        .select()
+  // Funções de edição removidas - apenas visualização
 
-      if (error) {
-        console.error("❌ Erro do Supabase:", error)
-        console.error("❌ Detalhes completos do erro:", JSON.stringify(error, null, 2))
-        console.error("❌ Código do erro:", error.code)
-        console.error("❌ Mensagem do erro:", error.message)
-        console.error("❌ Detalhes do erro:", error.details)
-        console.error("❌ Hint do erro:", error.hint)
-        toast.error(`Erro ao salvar: ${error.message}`)
-        return
-      }
-
-      console.log("✅ Dados salvos com sucesso:", data)
-      console.log("🔍 Email salvo no banco:", data?.[0]?.email || data?.[0]?.email_cliente)
-      toast.success("Dados atualizados com sucesso!")
-      setEditMode(false)
-      carregarPropostas()
-      
-    } catch (error) {
-      console.error("❌ Erro geral:", error)
-      toast.error(`Erro ao salvar: ${error.message}`)
-    }
-  }
-
-  function cancelarEdicao() {
-    setEditMode(false)
-    setEditData({})
-  }
-
-  // FUNÇÃO DE TESTE PARA DEBUG DO EMAIL
-  async function testarEmail() {
-    console.log("🧪 TESTE DE EMAIL - FORÇANDO ATUALIZAÇÃO")
-    console.log("🧪 EditData atual:", editData)
-    console.log("🧪 PropostaDetalhada atual:", propostaDetalhada)
-    
-    const emailTeste = "teste@email.com"
-    const dadosTeste = {
-      email: emailTeste
-    }
-    
-    console.log("🧪 Tentando salvar email:", emailTeste)
-    
-    try {
-      const { data, error } = await supabase
-        .from("propostas")
-        .update(dadosTeste)
-        .eq("id", propostaDetalhada.id)
-        .select()
-      
-      if (error) {
-        console.error("❌ Erro no teste:", error)
-    } else {
-        console.log("✅ Teste bem-sucedido:", data)
-      }
-    } catch (error) {
-      console.error("❌ Erro geral no teste:", error)
-    }
-  }
+  // Função de teste removida
 
 
   function verificarCadastroCompleto(proposta: any) {
@@ -811,51 +679,27 @@ export default function CadastradoPage() {
     }
   }
 
-  // Função para abrir modal de cancelamento
-  function abrirModalCancelamento(proposta: any) {
-    setPropostaParaCancelar(proposta)
-    setMotivoCancelamento("")
-    setShowModalCancelamento(true)
-    // Fechar modal de detalhes se estiver aberto
-    setShowModalDetalhes(false)
-  }
-
   // Função para cancelar proposta
-  async function confirmarCancelamento() {
-    if (!propostaParaCancelar) return
+  const handleCancelarProposta = async () => {
+    if (!propostaDetalhada) return
+
+    const motivo = prompt("Digite o motivo do cancelamento (opcional):")
+    if (motivo === null) return // Usuário cancelou
 
     try {
-      setCancelando(true)
-      console.log("🚫 Cancelando proposta:", propostaParaCancelar.id)
-
-      const sucesso = await cancelarProposta(propostaParaCancelar.id, motivoCancelamento)
-
+      const sucesso = await cancelarProposta(propostaDetalhada.id, motivo || undefined)
+      
       if (sucesso) {
         toast.success("Proposta cancelada com sucesso!")
-        
-        // Atualizar a lista de propostas
-        await carregarPropostas()
-        
-        // Fechar modal
-        setShowModalCancelamento(false)
-        setPropostaParaCancelar(null)
-        setMotivoCancelamento("")
+        setShowModalDetalhes(false)
+        carregarPropostas() // Recarregar lista
       } else {
-        toast.error("Erro ao cancelar proposta. Tente novamente.")
+        toast.error("Erro ao cancelar proposta")
       }
     } catch (error) {
-      console.error("❌ Erro ao cancelar proposta:", error)
+      console.error("Erro ao cancelar proposta:", error)
       toast.error("Erro ao cancelar proposta")
-    } finally {
-      setCancelando(false)
     }
-  }
-
-  // Função para fechar modal de cancelamento
-  function fecharModalCancelamento() {
-    setShowModalCancelamento(false)
-    setPropostaParaCancelar(null)
-    setMotivoCancelamento("")
   }
 
   // Extrair produtos únicos para o filtro
@@ -873,10 +717,7 @@ export default function CadastradoPage() {
     const nomeProduto = proposta.produto_nome || proposta.produto || proposta.sigla_plano || proposta.plano_nome || ""
     const matchesProduto = produtoFiltro === "todos" || nomeProduto === produtoFiltro
 
-    // Filtro por status
-    const matchesStatus = statusFiltro === "todos" || proposta.status === statusFiltro
-
-    return matchesFiltro && matchesProduto && matchesStatus
+    return matchesFiltro && matchesProduto
   })
 
   // Cálculos de paginação
@@ -889,7 +730,7 @@ export default function CadastradoPage() {
   // Reset da página quando filtros mudam
   useEffect(() => {
     setPaginaAtual(1)
-  }, [filtro, produtoFiltro, statusFiltro])
+  }, [filtro, produtoFiltro])
 
   if (loading) {
     return (
@@ -938,27 +779,21 @@ export default function CadastradoPage() {
               <h3 className="text-sm font-bold text-gray-600 uppercase tracking-wider font-sans">Total</h3>
               <div className="text-3xl font-bold text-[#168979] mt-2">{propostas.length}</div>
         </div>
-            <div className="w-14 h-14 bg-gray-100 rounded-lg flex items-center justify-center">
-              <CheckCircle className="h-6 w-6 text-gray-700" />
           </div>
-        </div>
           <div className="pb-6 px-6">
-            <p className="text-xs text-gray-500 font-medium">Aprovados + Cadastrados</p>
-          </div>
+            <p className="text-xs text-gray-500 font-medium">Total de cadastros</p>
         </div>
+          </div>
         
         <div className="bg-gradient-to-br from-white to-gray-50 border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 rounded-lg">
           <div className="flex flex-row items-center justify-between pb-3 pt-6 px-6">
             <div>
               <h3 className="text-sm font-bold text-gray-600 uppercase tracking-wider font-sans">Completos</h3>
               <div className="text-3xl font-bold text-[#168979] mt-2">{propostas.filter((p) => verificarCadastroCompleto(p)).length}</div>
-          </div>
-            <div className="w-14 h-14 bg-gray-100 rounded-lg flex items-center justify-center">
-              <Building className="h-6 w-6 text-gray-700" />
-            </div>
+        </div>
           </div>
           <div className="pb-6 px-6">
-            <p className="text-xs text-gray-500 font-medium">Cadastros finalizados</p>
+            <p className="text-xs text-gray-500 font-medium">Cadastros completos</p>
           </div>
         </div>
         
@@ -968,12 +803,9 @@ export default function CadastradoPage() {
               <h3 className="text-sm font-bold text-gray-600 uppercase tracking-wider font-sans">Pendentes</h3>
               <div className="text-3xl font-bold text-[#168979] mt-2">{propostas.filter((p) => !verificarCadastroCompleto(p)).length}</div>
             </div>
-            <div className="w-14 h-14 bg-gray-100 rounded-lg flex items-center justify-center">
-              <Calendar className="h-6 w-6 text-gray-700" />
-            </div>
           </div>
           <div className="pb-6 px-6">
-            <p className="text-xs text-gray-500 font-medium">Aguardando cadastro</p>
+            <p className="text-xs text-gray-500 font-medium">Cadastros pendentes</p>
           </div>
         </div>
         
@@ -983,19 +815,16 @@ export default function CadastradoPage() {
               <h3 className="text-sm font-bold text-gray-600 uppercase tracking-wider font-sans">Corretores</h3>
               <div className="text-3xl font-bold text-[#168979] mt-2">{propostas.filter((p) => p.origem === "propostas_corretores").length}</div>
             </div>
-            <div className="w-14 h-14 bg-gray-100 rounded-lg flex items-center justify-center">
-              <UserCheck className="h-6 w-6 text-gray-700" />
-            </div>
           </div>
           <div className="pb-6 px-6">
-            <p className="text-xs text-gray-500 font-medium">Via corretores</p>
+            <p className="text-xs text-gray-500 font-medium">Cadastros via corretores</p>
           </div>
         </div>
       </div>
 
       {/* Filtros */}
       <div className="bg-white p-3 rounded-lg shadow border border-gray-200">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1">Buscar por Nome</label>
             <div className="relative">
@@ -1022,21 +851,6 @@ export default function CadastradoPage() {
                     {produto}
                   </SelectItem>
                 ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">Filtrar por Status</label>
-            <Select value={statusFiltro} onValueChange={setStatusFiltro}>
-              <SelectTrigger className="corporate-rounded">
-                <SelectValue placeholder="Todos os status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos os Status</SelectItem>
-                <SelectItem value="aprovada">Aprovada</SelectItem>
-                <SelectItem value="cadastrado">Cadastrado</SelectItem>
-                <SelectItem value="cadastrada">Cadastrada</SelectItem>
-                <SelectItem value="cancelada">Cancelada</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -1180,7 +994,6 @@ export default function CadastradoPage() {
                           onClick={() => abrirModalCadastro(proposta)}
                           className="text-blue-700 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded transition-colors text-xs"
                         >
-                          <Save className="h-3 w-3 inline mr-1" />
                           Completar Cadastro
                         </button>
                       )}
@@ -1309,7 +1122,6 @@ export default function CadastradoPage() {
                     onClick={() => abrirModalCadastro(proposta)}
                     className="text-white bg-[#168979] hover:bg-[#13786a] px-3 py-2 rounded btn-corporate-sm transition-colors text-sm flex items-center justify-center gap-2"
                   >
-                    <Save className="h-4 w-4" />
                     Completar Cadastro
                   </button>
                 )}
@@ -1322,7 +1134,7 @@ export default function CadastradoPage() {
           <div className="text-center py-12">
             <div className="text-gray-500 text-lg">Nenhum cliente aprovado encontrado</div>
             <div className="text-gray-400 text-sm mt-2">
-              {filtro || produtoFiltro !== "todos" || statusFiltro !== "todos"
+              {filtro || produtoFiltro !== "todos"
                 ? "Tente ajustar os filtros de busca"
                 : "Nenhuma proposta foi aprovada ainda"}
             </div>
@@ -1465,7 +1277,6 @@ export default function CadastradoPage() {
                   </>
                 ) : (
                   <>
-                    <Save className="h-4 w-4 mr-2" />
                     Finalizar Cadastro
                   </>
                 )}
@@ -1483,75 +1294,29 @@ export default function CadastradoPage() {
               <div className="flex justify-between items-center mb-6 border-b border-gray-200 pb-4">
                 <h2 className="text-2xl font-bold text-gray-900">
                   Detalhes da Proposta
-                  {editMode && <span className="ml-2 text-sm text-orange-600 font-normal">(Modo de Edição)</span>}
                 </h2>
                 <div className="flex gap-3">
-                  {editMode ? (
-                    <>
-                      <Button
-                        onClick={() => {
-                          console.log("🔍 BOTÃO SALVAR CLICADO")
-                          alert("🔍 BOTÃO SALVAR CLICADO")
-                          salvarEdicao()
-                        }}
-                        className="bg-green-600 hover:bg-green-700 text-white"
-                      >
-                        <Save className="h-4 w-4 mr-2" />
-                        Salvar
-                      </Button>
-                      <Button
-                        onClick={cancelarEdicao}
-                        variant="outline"
-                      >
-                        Cancelar
-                      </Button>
-                    </>
-                  ) : (
-                    <>
-                      <Button
-                        onClick={() => {
-                          console.log("🔍 BOTÃO EDITAR CLICADO")
-                          alert("🔍 BOTÃO EDITAR CLICADO")
-                          iniciarEdicao()
-                        }}
-                        className="bg-orange-600 hover:bg-orange-700 text-white"
-                      >
-                        <Edit className="h-4 w-4 mr-2" />
-                        Editar
-                      </Button>
-                      <Button
-                        onClick={testarEmail}
-                        className="bg-red-600 hover:bg-red-700 text-white ml-2"
-                      >
-                        🧪 Teste Email
-                      </Button>
-                      {!verificarCadastroCompleto(propostaDetalhada) && (
-                        <Button
-                          onClick={() => {
-                            setShowModalDetalhes(false)
-                            abrirModalCadastro(propostaDetalhada)
-                          }}
-                          className="bg-blue-600 hover:bg-blue-700 text-white"
-                        >
-                          <Save className="h-4 w-4 mr-2" />
-                          Completar Cadastro
-                        </Button>
-                      )}
-                    </>
-                  )}
-                  
-                  {/* Botão de Cancelar - só aparece se não estiver cancelada */}
-                  {propostaDetalhada && propostaDetalhada.status !== "cancelada" && (
-                    <Button 
-                      onClick={() => abrirModalCancelamento(propostaDetalhada)} 
-                      className="bg-red-600 hover:bg-red-700 text-white"
+                  {!verificarCadastroCompleto(propostaDetalhada) && (
+                    <Button
+                      onClick={() => {
+                        setShowModalDetalhes(false)
+                        abrirModalCadastro(propostaDetalhada)
+                      }}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded font-medium transition-colors"
                     >
-                      <X className="h-4 w-4 mr-2" />
-                      Cancelar Proposta
+                      Completar Cadastro
                     </Button>
                   )}
-                  
-                  <Button onClick={() => setShowModalDetalhes(false)} variant="outline">
+                  <Button
+                    onClick={handleCancelarProposta}
+                    className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded font-medium transition-colors"
+                  >
+                    Cancelar Proposta
+                  </Button>
+                  <Button 
+                  onClick={() => setShowModalDetalhes(false)}
+                    className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-2 rounded font-medium transition-colors border border-gray-300"
+                >
                     Fechar
                   </Button>
                 </div>
@@ -1584,105 +1349,39 @@ export default function CadastradoPage() {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-600">Nome Completo</label>
-                            {editMode ? (
-                              <Input
-                                value={editData.nome || ""}
-                                onChange={(e) => setEditData({...editData, nome: e.target.value})}
-                                className="mt-1"
-                              />
-                            ) : (
-                              <p className="text-gray-900 font-medium">{obterNomeCliente(propostaDetalhada)}</p>
-                            )}
+                            <p className="text-gray-900 font-medium">{obterNomeCliente(propostaDetalhada)}</p>
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-600">Email</label>
-                            {editMode ? (
-                              <Input
-                                type="email"
-                                value={editData.email || ""}
-                                onChange={(e) => setEditData({...editData, email: e.target.value})}
-                                className="mt-1"
-                              />
-                            ) : (
                           <p className="text-gray-900">{obterEmailCliente(propostaDetalhada)}</p>
-                            )}
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-600">Telefone</label>
-                            {editMode ? (
-                              <Input
-                                value={editData.telefone || ""}
-                                onChange={(e) => setEditData({...editData, telefone: e.target.value})}
-                                className="mt-1"
-                              />
-                            ) : (
-                              <p className="text-gray-900">{obterTelefoneCliente(propostaDetalhada)}</p>
-                            )}
+                            <p className="text-gray-900">{obterTelefoneCliente(propostaDetalhada)}</p>
                         </div>
-                        <div>
+                          <div>
                             <label className="block text-sm font-medium text-gray-600">CPF</label>
-                            {editMode ? (
-                              <Input
-                                value={editData.cpf || ""}
-                                onChange={(e) => setEditData({...editData, cpf: e.target.value})}
-                                className="mt-1"
-                              />
-                            ) : (
-                              <p className="text-gray-900">{propostaDetalhada.cpf || "Não informado"}</p>
-                            )}
+                            <p className="text-gray-900">{propostaDetalhada.cpf || "Não informado"}</p>
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-600">RG</label>
-                            {editMode ? (
-                              <Input
-                                value={editData.rg || ""}
-                                onChange={(e) => setEditData({...editData, rg: e.target.value})}
-                                className="mt-1"
-                              />
-                            ) : (
-                              <p className="text-gray-900">{propostaDetalhada.rg || "Não informado"}</p>
-                            )}
+                            <p className="text-gray-900">{propostaDetalhada.rg || "Não informado"}</p>
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-600">Órgão Emissor</label>
-                            {editMode ? (
-                              <Input
-                                value={editData.orgao_emissor || ""}
-                                onChange={(e) => setEditData({...editData, orgao_emissor: e.target.value})}
-                                className="mt-1"
-                              />
-                            ) : (
-                              <p className="text-gray-900">{propostaDetalhada.orgao_emissor || propostaDetalhada.orgao_expedidor || "Não informado"}</p>
-                            )}
+                            <p className="text-gray-900">{propostaDetalhada.orgao_emissor || propostaDetalhada.orgao_expedidor || "Não informado"}</p>
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-600">CNS</label>
-                            {editMode ? (
-                              <Input
-                                value={editData.cns || ""}
-                                onChange={(e) => setEditData({...editData, cns: e.target.value})}
-                                className="mt-1"
-                              />
-                            ) : (
-                              <p className="text-gray-900">{propostaDetalhada.cns || propostaDetalhada.cns_cliente || "Não informado"}</p>
-                            )}
+                            <p className="text-gray-900">{propostaDetalhada.cns || propostaDetalhada.cns_cliente || "Não informado"}</p>
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-600">Data de Nascimento</label>
-                            {editMode ? (
-                              <Input
-                                type="date"
-                                value={editData.data_nascimento || ""}
-                                onChange={(e) => setEditData({...editData, data_nascimento: e.target.value})}
-                                className="mt-1"
-                              />
-                            ) : (
                           <p className="text-gray-900">
                                 {propostaDetalhada.data_nascimento
                                   ? formatarDataSegura(propostaDetalhada.data_nascimento)
                                   : "Não informado"}
                           </p>
-                            )}
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-600">Idade</label>
@@ -1698,28 +1397,11 @@ export default function CadastradoPage() {
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-600">UF de Nascimento</label>
-                            {editMode ? (
-                              <Input
-                                value={editData.uf_nascimento || ""}
-                                onChange={(e) => setEditData({...editData, uf_nascimento: e.target.value})}
-                                className="mt-1"
-                                placeholder="Ex: SP, RJ, MG..."
-                              />
-                            ) : (
-                              <p className="text-gray-900">{propostaDetalhada.uf_nascimento || "Não informado"}</p>
-                            )}
+                            <p className="text-gray-900">{propostaDetalhada.uf_nascimento || "Não informado"}</p>
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-600">Nome da Mãe</label>
-                            {editMode ? (
-                              <Input
-                                value={editData.nome_mae || ""}
-                                onChange={(e) => setEditData({...editData, nome_mae: e.target.value})}
-                                className="mt-1"
-                              />
-                            ) : (
-                              <p className="text-gray-900">{propostaDetalhada.nome_mae || propostaDetalhada.nome_mae_cliente || "Não informado"}</p>
-                            )}
+                            <p className="text-gray-900">{propostaDetalhada.nome_mae || propostaDetalhada.nome_mae_cliente || "Não informado"}</p>
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-600">Nome do Pai</label>
@@ -1890,8 +1572,7 @@ export default function CadastradoPage() {
                     {/* Documentos do Titular */}
                     <Card>
                       <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <FileText className="h-5 w-5 text-blue-500" />
+                        <CardTitle>
                           Documentos do Titular
                         </CardTitle>
                       </CardHeader>
@@ -1933,8 +1614,7 @@ export default function CadastradoPage() {
                     {dependentes && dependentes.length > 0 && (
                       <Card>
                         <CardHeader>
-                          <CardTitle className="flex items-center gap-2">
-                            <FileText className="h-5 w-5 text-green-500" />
+                          <CardTitle>
                             Documentos dos Dependentes
                           </CardTitle>
                         </CardHeader>
@@ -2006,7 +1686,9 @@ export default function CadastradoPage() {
                                 .map((resposta: any, i: any) => (
                                 <div key={`${q.id}-${resposta.pergunta_id}-${i}`} className="border-l-4 border-blue-200 pl-4 py-2 mb-2">
                                   <div className="font-medium text-gray-900 mb-1">Pergunta {resposta.pergunta_id}</div>
-                                  <div className="text-sm text-gray-600 mb-2">{resposta.pergunta_texto || resposta.pergunta || "Pergunta não disponível"}</div>
+                                  <div className="text-sm text-gray-600 mb-2">
+                                    {resposta.pergunta_texto || resposta.pergunta || obterTextoPergunta(resposta.pergunta_id)}
+          </div>
                                   <div className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${resposta.resposta === "sim" || resposta.resposta === true ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"}`}>
                                     {resposta.resposta === "sim" || resposta.resposta === true ? "SIM" : "NÃO"}
           </div>
@@ -2594,78 +2276,6 @@ export default function CadastradoPage() {
                 </Button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* Modal de Cancelamento */}
-      {showModalCancelamento && propostaParaCancelar && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md mx-4">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="flex-shrink-0 w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                <AlertTriangle className="h-6 w-6 text-red-600" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">Cancelar Proposta</h3>
-                <p className="text-sm text-gray-500">Esta ação não pode ser desfeita</p>
-              </div>
-            </div>
-
-            <div className="mb-4">
-              <p className="text-sm text-gray-700 mb-2">
-                <strong>Cliente:</strong> {obterNomeCliente(propostaParaCancelar)}
-              </p>
-              <p className="text-sm text-gray-700 mb-2">
-                <strong>Produto:</strong> {propostaParaCancelar.produto_nome || propostaParaCancelar.produto || propostaParaCancelar.sigla_plano || "N/A"}
-              </p>
-              <p className="text-sm text-gray-700">
-                <strong>Status atual:</strong> {propostaParaCancelar.status}
-              </p>
-            </div>
-
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Motivo do cancelamento <span className="text-red-500">*</span>
-              </label>
-              <Textarea
-                value={motivoCancelamento}
-                onChange={(e) => setMotivoCancelamento(e.target.value)}
-                placeholder="Digite o motivo do cancelamento..."
-                rows={3}
-                className="w-full"
-                required
-              />
-            </div>
-
-            <div className="flex flex-col sm:flex-row justify-end gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={fecharModalCancelamento}
-                disabled={cancelando}
-              >
-                Manter Proposta
-              </Button>
-              <Button
-                type="button"
-                onClick={confirmarCancelamento}
-                disabled={!motivoCancelamento.trim() || cancelando}
-                className="bg-red-600 hover:bg-red-700 text-white"
-              >
-                {cancelando ? (
-                  <>
-                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                    Cancelando...
-                  </>
-                ) : (
-                  <>
-                    <X className="h-4 w-4 mr-2" />
-                    Confirmar Cancelamento
-                  </>
-                )}
-              </Button>
-            </div>
           </div>
         </div>
       )}

@@ -13,6 +13,7 @@ import {
   obterEmailCliente,
   obterTelefoneCliente,
   obterValorProposta,
+  cancelarProposta,
 } from "@/services/propostas-service-unificado"
 import { downloadPropostaComDocumentos } from "@/services/download-service"
 import { buscarCorretores } from "@/services/corretores-service"
@@ -26,6 +27,35 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { supabase } from "@/lib/supabase"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+
+// Função para obter o texto da pergunta por ID
+function obterTextoPergunta(perguntaId: number): string {
+  const perguntas = {
+    1: "Teve alguma doença que resultou em internação nos últimos 2 anos? (qual?)",
+    2: "Foi submetido(a) a internações clínicas, cirúrgicas ou psiquiátricas nos últimos 5 anos? Caso positivo, informe quando e qual doença.",
+    3: "Possui alguma doença hereditária ou congênita? (qual?)",
+    4: "É portador de alguma doença que desencadeou sequela física? (qual?)",
+    5: "É portador de alguma doença que necessitará de transplante?",
+    6: "É portador de doença renal que necessite diálise e/ou hemodiálise?",
+    7: "É portador de câncer? (informar a localização)",
+    8: "Tem ou teve alguma doença oftalmológica, como catarata, glaucoma, astigmatismo, miopia, hipermetropia ou outra? Fez cirurgia refrativa?",
+    9: "Tem ou teve alguma doença do ouvido, nariz ou garganta, como sinusite, desvio de septo, amigdalite, otite ou outra?",
+    10: "É portador de alguma doença do aparelho digestivo, como gastrite, úlcera, colite, doença da vesícula biliar ou outras?",
+    11: "É portador de alguma doença ortopédica como hérnia de disco, osteoporose ou outros?",
+    12: "É portador de alguma doença neurológica como mal de Parkinson, doenças de Alzheimer, epilepsia ou outros?",
+    13: "É portador de alguma doença cardíaca, circulatória (varizes e outras), hipertensiva ou diabetes?",
+    14: "É portador de alguma doença ginecológica / urológica?",
+    15: "É portador de hérnia inguinal, umbilical, incisional ou outras?",
+    16: "É portador de alguma doença infectocontagiosa, inclusive AIDS ou hepatite?",
+    17: "É portador de alguma doença psiquiátrica, como depressão, esquizofrenia, demência, alcoolismo, dependência de drogas ou outra?",
+    18: "Teve alguma patologia que necessitou de tratamento psicológico ou psicoterápico? (qual?)",
+    19: "É portador ou já sofreu de alguma doença do aparelho respiratório, como asma, doença pulmonar obstrutiva crônica, bronquite, enfisema ou outra?",
+    20: "Tem ou teve alguma doença não relacionada nas perguntas anteriores?",
+    21: "É gestante?"
+  }
+  
+  return perguntas[perguntaId as keyof typeof perguntas] || "Pergunta não disponível"
+}
 
 export default function PropostasPage() {
   const [propostas, setPropostas] = useState<any[]>([])
@@ -231,50 +261,9 @@ export default function PropostasPage() {
         }
       }
       
-      // Buscar questionários dos dependentes também
-      if (dependentesData && dependentesData.length > 0) {
-        console.log("🔍 Buscando questionários dos dependentes...")
-        
-        for (const dependente of dependentesData) {
-          try {
-            console.log(`🔍 Buscando questionário para dependente: ${dependente.nome} (ID: ${dependente.id})`)
-            
-            // Buscar na tabela questionario_saude com dependente_id
-            const { data: questionarioDependente, error: errorQuestionarioDependente } = await supabase
-              .from("questionario_saude")
-              .select("*")
-              .eq("proposta_id", proposta.id)
-              .eq("dependente_id", dependente.id)
-              .order("pergunta_id", { ascending: true })
-            
-            if (!errorQuestionarioDependente && questionarioDependente && questionarioDependente.length > 0) {
-              console.log(`✅ Questionário do dependente ${dependente.nome} encontrado em questionario_saude:`, questionarioDependente.length, "respostas")
-              console.log("📋 Detalhes do questionário:", questionarioDependente)
-              questionariosData.push(...questionarioDependente)
-            } else {
-              console.log(`ℹ️ Nenhum questionário encontrado em questionario_saude para dependente ${dependente.nome}`)
-            }
-            
-            // Buscar também na tabela questionario_respostas para dependentes
-            const { data: questionarioRespostasDependente, error: errorQuestionarioRespostasDependente } = await supabase
-              .from("questionario_respostas")
-              .select("*, respostas_questionario(*)")
-              .eq("proposta_id", proposta.id)
-              .eq("pessoa_tipo", "dependente")
-              .eq("pessoa_nome", dependente.nome)
-            
-            if (!errorQuestionarioRespostasDependente && questionarioRespostasDependente && questionarioRespostasDependente.length > 0) {
-              console.log(`✅ Questionário do dependente ${dependente.nome} encontrado em questionario_respostas:`, questionarioRespostasDependente.length, "registros")
-              console.log("📋 Detalhes do questionário:", questionarioRespostasDependente)
-              questionariosData.push(...questionarioRespostasDependente)
-            } else {
-              console.log(`ℹ️ Nenhum questionário encontrado em questionario_respostas para dependente ${dependente.nome}`)
-            }
-          } catch (err) {
-            console.log(`⚠️ Erro ao buscar questionário do dependente ${dependente.nome}:`, err)
-          }
-        }
-      }
+      // REMOVIDO: Busca duplicada de questionários dos dependentes
+      // Os questionários dos dependentes já são carregados na busca principal acima
+      // Esta lógica estava causando duplicação dos dados
       
       setQuestionariosSaude(questionariosData)
 
@@ -532,7 +521,7 @@ export default function PropostasPage() {
       data_criacao: proposta.created_at ? proposta.created_at.split("T")[0].split("-").reverse().join("/") : "",
       data_atualizacao: proposta.updated_at ? proposta.updated_at.split("T")[0].split("-").reverse().join("/") : "",
       status: proposta.status || "pendente",
-      assinatura: `Assinado digitalmente por: ${proposta.nome || proposta.nome_cliente || ""}\nCPF: ${proposta.cpf || ""}\nE-mail: ${proposta.email || proposta.email_cliente || ""}\nIP: ${proposta.ip || ""}\nData/Hora: ${proposta.data_assinatura || proposta.data_assinatura_digital || ""}\nEste documento foi assinado digitalmente conforme a legislação vigente.`,
+      assinatura: `Assinado digitalmente por: ${proposta.nome || proposta.nome_cliente || ""}\nCPF: ${proposta.cpf || ""}\nE-mail: ${proposta.email || proposta.email_cliente || ""}\nIP: ${proposta.ip_assinatura || "Não disponível"}\nData/Hora: ${proposta.assinado_em ? new Date(proposta.assinado_em).toLocaleString("pt-BR") : "Não disponível"}\nNavegador: ${proposta.user_agent || "Não disponível"}\nEste documento foi assinado digitalmente conforme a legislação vigente.`,
       idade_titular: calcularIdade(proposta.data_nascimento),
     }
 
@@ -878,7 +867,7 @@ export default function PropostasPage() {
   }
 
   function iniciarEdicao() {
-    console.log("🔍 Debug - Dados da proposta detalhada:", propostaDetalhada)
+    console.log("🔧 INICIANDO EDIÇÃO - Dados da proposta detalhada:", propostaDetalhada)
     console.log("📅 Debug - Data nascimento original:", propostaDetalhada.data_nascimento)
     console.log("🏛️ Debug - UF nascimento original:", propostaDetalhada.uf_nascimento)
     
@@ -890,8 +879,12 @@ export default function PropostasPage() {
     console.log("🔍 Email inicial:", emailInicial)
     console.log("🔍 Telefone inicial:", telefoneInicial)
     
-    setEditMode(true)
-    setEditData({
+    // Determinar campos válidos baseado na origem da proposta
+    const camposValidosParaEdicao = propostaDetalhada.origem === 'corretor' ? 
+      ['nome', 'email', 'telefone', 'cpf', 'rg', 'orgao_emissor', 'cns', 'data_nascimento', 'sexo', 'estado_civil', 'naturalidade', 'uf_nascimento', 'nome_mae', 'nome_pai', 'nacionalidade', 'profissao', 'cep', 'endereco', 'numero', 'complemento', 'bairro', 'cidade', 'estado'] :
+      ['nome', 'email', 'telefone', 'cpf', 'rg', 'orgao_emissor', 'cns', 'data_nascimento', 'sexo', 'estado_civil', 'cep', 'endereco', 'numero', 'complemento', 'bairro', 'cidade', 'estado']
+    
+    const dadosIniciais = {
       nome: nomeInicial,
       email: emailInicial,
       telefone: telefoneInicial,
@@ -902,12 +895,7 @@ export default function PropostasPage() {
       data_nascimento: propostaDetalhada.data_nascimento || "",
       sexo: propostaDetalhada.sexo || propostaDetalhada.sexo_cliente || "",
       estado_civil: propostaDetalhada.estado_civil || propostaDetalhada.estado_civil_cliente || "",
-      naturalidade: propostaDetalhada.naturalidade || "",
-      uf_nascimento: propostaDetalhada.uf_nascimento || "",
-      nome_mae: propostaDetalhada.nome_mae || propostaDetalhada.nome_mae_cliente || "",
-      nome_pai: propostaDetalhada.nome_pai || "",
-      nacionalidade: propostaDetalhada.nacionalidade || "",
-      profissao: propostaDetalhada.profissao || "",
+      // Campos de endereço
       cep: propostaDetalhada.cep || "",
       endereco: propostaDetalhada.endereco || "",
       numero: propostaDetalhada.numero || "",
@@ -915,10 +903,29 @@ export default function PropostasPage() {
       bairro: propostaDetalhada.bairro || "",
       cidade: propostaDetalhada.cidade || "",
       estado: propostaDetalhada.estado || ""
-    })
+    }
+    
+    // Adicionar campos extras apenas se a proposta for de corretor
+    if (propostaDetalhada.origem === 'corretor') {
+      (dadosIniciais as any).naturalidade = propostaDetalhada.naturalidade || "";
+      (dadosIniciais as any).uf_nascimento = propostaDetalhada.uf_nascimento || "";
+      (dadosIniciais as any).nome_mae = propostaDetalhada.nome_mae || propostaDetalhada.nome_mae_cliente || "";
+      (dadosIniciais as any).nome_pai = propostaDetalhada.nome_pai || "";
+      (dadosIniciais as any).nacionalidade = propostaDetalhada.nacionalidade || "";
+      (dadosIniciais as any).profissao = propostaDetalhada.profissao || "";
+    }
+    
+    console.log("🔧 Dados iniciais para edição:", dadosIniciais)
+    
+    setEditMode(true)
+    setEditData(dadosIniciais)
   }
 
-  async function salvarEdicao() {
+  async function salvarEdicao(e?: React.MouseEvent) {
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
     console.log("🔧 FUNÇÃO SALVAR - VERSÃO CORRIGIDA")
     console.log("🔧 Cache limpo, servidor reiniciado")
     
@@ -966,21 +973,95 @@ export default function PropostasPage() {
       console.log("✅ Registro encontrado na tabela:", tabelaDestino)
       console.log("✅ Registro encontrado:", existingRecord)
       
-      // Campos baseados na tabela encontrada - FOCANDO APENAS NO EMAIL PARA DEBUG
-      const dadosMinimos = tabelaDestino === 'propostas_corretores' ? {
-        email_cliente: editData.email || propostaDetalhada.email || ""
+      // Campos baseados na tabela encontrada - SALVANDO APENAS CAMPOS QUE EXISTEM
+      const dadosCompletos = tabelaDestino === 'propostas_corretores' ? {
+        nome_cliente: editData.nome || propostaDetalhada.nome || propostaDetalhada.nome_cliente || "",
+        email_cliente: editData.email || propostaDetalhada.email || propostaDetalhada.email_cliente || "",
+        telefone_cliente: editData.telefone || propostaDetalhada.telefone || propostaDetalhada.telefone_cliente || "",
+        cpf: editData.cpf || propostaDetalhada.cpf || "",
+        rg: editData.rg || propostaDetalhada.rg || "",
+        orgao_emissor: editData.orgao_emissor || propostaDetalhada.orgao_emissor || propostaDetalhada.orgao_expedidor || "",
+        cns: editData.cns || propostaDetalhada.cns || propostaDetalhada.cns_cliente || "",
+        data_nascimento: editData.data_nascimento || propostaDetalhada.data_nascimento || "",
+        sexo: editData.sexo || propostaDetalhada.sexo || propostaDetalhada.sexo_cliente || "",
+        estado_civil: editData.estado_civil || propostaDetalhada.estado_civil || propostaDetalhada.estado_civil_cliente || "",
+        naturalidade: editData.naturalidade || propostaDetalhada.naturalidade || "",
+        uf_nascimento: editData.uf_nascimento || propostaDetalhada.uf_nascimento || "",
+        nome_mae: editData.nome_mae || propostaDetalhada.nome_mae || propostaDetalhada.nome_mae_cliente || "",
+        nome_pai: editData.nome_pai || propostaDetalhada.nome_pai || "",
+        nacionalidade: editData.nacionalidade || propostaDetalhada.nacionalidade || "",
+        profissao: editData.profissao || propostaDetalhada.profissao || "",
+        cep: editData.cep || propostaDetalhada.cep || "",
+        endereco: editData.endereco || propostaDetalhada.endereco || "",
+        numero: editData.numero || propostaDetalhada.numero || "",
+        complemento: editData.complemento || propostaDetalhada.complemento || "",
+        bairro: editData.bairro || propostaDetalhada.bairro || "",
+        cidade: editData.cidade || propostaDetalhada.cidade || "",
+        estado: editData.estado || propostaDetalhada.estado || ""
       } : {
-        email: editData.email || propostaDetalhada.email || ""
+        // Campos básicos que existem na tabela 'propostas'
+        nome: editData.nome || propostaDetalhada.nome || propostaDetalhada.nome_cliente || "",
+        // Salvar email em AMBOS os campos para garantir compatibilidade
+        email: editData.email || propostaDetalhada.email || propostaDetalhada.email_cliente || "",
+        email_cliente: editData.email || propostaDetalhada.email || propostaDetalhada.email_cliente || "",
+        // Salvar telefone em AMBOS os campos para garantir compatibilidade
+        telefone: editData.telefone || propostaDetalhada.telefone || propostaDetalhada.telefone_cliente || "",
+        telefone_cliente: editData.telefone || propostaDetalhada.telefone || propostaDetalhada.telefone_cliente || "",
+        cpf: editData.cpf || propostaDetalhada.cpf || "",
+        rg: editData.rg || propostaDetalhada.rg || "",
+        orgao_emissor: editData.orgao_emissor || propostaDetalhada.orgao_emissor || propostaDetalhada.orgao_expedidor || "",
+        cns: editData.cns || propostaDetalhada.cns || propostaDetalhada.cns_cliente || "",
+        data_nascimento: editData.data_nascimento || propostaDetalhada.data_nascimento || "",
+        sexo: editData.sexo || propostaDetalhada.sexo || propostaDetalhada.sexo_cliente || "",
+        estado_civil: editData.estado_civil || propostaDetalhada.estado_civil || propostaDetalhada.estado_civil_cliente || "",
+        // Campos de endereço que existem na tabela 'propostas'
+        cep: editData.cep || propostaDetalhada.cep || "",
+        endereco: editData.endereco || propostaDetalhada.endereco || "",
+        numero: editData.numero || propostaDetalhada.numero || "",
+        complemento: editData.complemento || propostaDetalhada.complemento || "",
+        bairro: editData.bairro || propostaDetalhada.bairro || "",
+        cidade: editData.cidade || propostaDetalhada.cidade || "",
+        estado: editData.estado || propostaDetalhada.estado || ""
+        // Removidos campos que não existem na tabela 'propostas':
+        // - naturalidade, uf_nascimento, nome_mae, nome_pai, nacionalidade, profissao
       }
       
-      console.log("Dados mínimos:", dadosMinimos)
+      // Filtrar apenas campos que existem na tabela de destino
+      const camposValidos = tabelaDestino === 'propostas_corretores' ? 
+        ['nome', 'email', 'telefone', 'cpf', 'rg', 'orgao_emissor', 'cns', 'data_nascimento', 'sexo', 'estado_civil', 'naturalidade', 'uf_nascimento', 'nome_mae', 'nome_pai', 'nacionalidade', 'profissao', 'cep', 'endereco', 'numero', 'complemento', 'bairro', 'cidade', 'estado'] :
+        ['nome', 'email', 'email_cliente', 'telefone', 'telefone_cliente', 'cpf', 'rg', 'orgao_emissor', 'cns', 'data_nascimento', 'sexo', 'estado_civil', 'cep', 'endereco', 'numero', 'complemento', 'bairro', 'cidade', 'estado']
+      
+      // Filtrar dadosCompletos para incluir apenas campos válidos
+      const dadosFiltrados = Object.keys(dadosCompletos)
+        .filter(key => camposValidos.includes(key))
+        .reduce((obj, key) => {
+          (obj as any)[key] = (dadosCompletos as any)[key]
+          return obj
+        }, {} as any)
+      
+      console.log("🔍 Dados completos para salvar:", dadosCompletos)
+      console.log("🔍 Campos válidos para tabela:", tabelaDestino, camposValidos)
+      console.log("🔍 Dados filtrados (apenas campos válidos):", dadosFiltrados)
       console.log("🔍 EditData completo:", editData)
       console.log("🔍 Email no editData:", editData.email)
       console.log("🔍 Email na propostaDetalhada:", propostaDetalhada.email)
       
+      // Verificar se ainda há campos inválidos
+      const camposInvalidos = Object.keys(dadosFiltrados).filter(key => !camposValidos.includes(key))
+      if (camposInvalidos.length > 0) {
+        console.error("❌ CAMPOS INVÁLIDOS AINDA PRESENTES:", camposInvalidos)
+      } else {
+        console.log("✅ Todos os campos são válidos para a tabela:", tabelaDestino)
+      }
+      
+      // Debug adicional para ver exatamente o que está sendo enviado
+      console.log("🔍 DEBUG - Chaves dos dadosFiltrados:", Object.keys(dadosFiltrados))
+      console.log("🔍 DEBUG - Verificando se nacionalidade está presente:", 'nacionalidade' in dadosFiltrados)
+      console.log("🔍 DEBUG - Verificando se naturalidade está presente:", 'naturalidade' in dadosFiltrados)
+      
       const { data, error } = await supabase
         .from(tabelaDestino)
-        .update(dadosMinimos)
+        .update(dadosFiltrados)
         .eq("id", propostaDetalhada.id)
         .select()
 
@@ -997,11 +1078,15 @@ export default function PropostasPage() {
 
       console.log("✅ Dados salvos com sucesso:", data)
       console.log("🔍 Email salvo no banco:", data?.[0]?.email || data?.[0]?.email_cliente)
+      console.log("🔍 Nome salvo no banco:", data?.[0]?.nome || data?.[0]?.nome_cliente)
+      console.log("🔍 Telefone salvo no banco:", data?.[0]?.telefone || data?.[0]?.telefone_cliente)
+      
       toast.success("Dados atualizados com sucesso!")
       setEditMode(false)
       
-      // Atualizar os dados da proposta detalhada
-      setPropostaDetalhada({ ...propostaDetalhada, ...editData })
+      // Atualizar os dados da proposta detalhada com os dados salvos
+      const dadosAtualizados = data?.[0] || {}
+      setPropostaDetalhada({ ...propostaDetalhada, ...dadosAtualizados })
       
       // Recarregar a lista de propostas
       carregarPropostas()
@@ -1017,6 +1102,28 @@ export default function PropostasPage() {
     setEditData({})
   }
 
+  const handleCancelarProposta = async () => {
+    if (!propostaDetalhada) return
+
+    const motivo = prompt("Digite o motivo do cancelamento (opcional):")
+    if (motivo === null) return // Usuário cancelou
+
+    try {
+      const sucesso = await cancelarProposta(propostaDetalhada.id, motivo || undefined)
+      
+      if (sucesso) {
+        toast.success("Proposta cancelada com sucesso!")
+        setShowModalDetalhes(false)
+        carregarPropostas() // Recarregar lista
+      } else {
+        toast.error("Erro ao cancelar proposta")
+      }
+    } catch (error) {
+      console.error("Erro ao cancelar proposta:", error)
+      toast.error("Erro ao cancelar proposta")
+    }
+  }
+
   function getStatusBadge(status: any) {
     const statusConfig = {
       parcial: { label: "Aguardando Validação", color: "bg-blue-50 text-blue-700 border border-blue-200" },
@@ -1027,6 +1134,7 @@ export default function PropostasPage() {
       pendente: { label: "Aguardando Análise", color: "bg-amber-50 text-amber-700 border border-amber-200" },
       aprovada: { label: "Aprovada", color: "bg-green-50 text-green-700 border border-green-200" },
       rejeitada: { label: "Rejeitada", color: "bg-red-50 text-red-700 border border-red-200" },
+      cancelada: { label: "Cancelada", color: "bg-gray-50 text-gray-700 border border-gray-200" },
     }
 
     return statusConfig[status as keyof typeof statusConfig] || { label: status, color: "bg-gray-50 text-gray-700 border border-gray-200" }
@@ -1169,8 +1277,7 @@ export default function PropostasPage() {
       return (
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Heart className="h-5 w-5 text-red-500" />
+            <CardTitle>
               Declaração de Saúde
             </CardTitle>
           </CardHeader>
@@ -1185,8 +1292,7 @@ export default function PropostasPage() {
         {questionariosSaude.map((q, idx) => (
           <Card key={q.id || idx}>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Heart className="h-5 w-5 text-red-500" />
+          <CardTitle>
                 {q.pessoa_tipo === "titular"
                   ? "Declaração de Saúde - Titular"
                   : `Declaração de Saúde - ${q.pessoa_nome}`}
@@ -1198,20 +1304,24 @@ export default function PropostasPage() {
                 <span>Altura: <b>{q.altura || "-"} cm</b></span>
               </div>
               {q.respostas_questionario && q.respostas_questionario.length > 0 ? (
-                q.respostas_questionario.map((resposta: any, i: any) => (
-                  <div key={i} className="border-l-4 border-blue-200 pl-4 py-2 mb-2">
-                    <div className="font-medium text-gray-900 mb-1">Pergunta {resposta.pergunta_id}</div>
-                    <div className="text-sm text-gray-600 mb-2">{resposta.pergunta_texto || resposta.pergunta || "Pergunta não disponível"}</div>
-                    <div className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${resposta.resposta === "sim" || resposta.resposta === true ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"}`}>
-                {resposta.resposta === "sim" || resposta.resposta === true ? "SIM" : "NÃO"}
-              </div>
-                    {resposta.observacao && (
-                <div className="mt-2 text-sm text-gray-700 bg-gray-50 p-2 rounded">
-                        <strong>Observações:</strong> {resposta.observacao}
-                </div>
-              )}
-            </div>
-                ))
+                // Remover duplicatas baseado em pergunta_id
+                Array.from(new Map(q.respostas_questionario.map((r: any) => [r.pergunta_id, r])).values())
+                  .map((resposta: any, i: any) => (
+                    <div key={`${q.id}-${resposta.pergunta_id}-${i}`} className="border-l-4 border-blue-200 pl-4 py-2 mb-2">
+                      <div className="font-medium text-gray-900 mb-1">Pergunta {resposta.pergunta_id}</div>
+                      <div className="text-sm text-gray-600 mb-2">
+                        {resposta.pergunta_texto || resposta.pergunta || obterTextoPergunta(resposta.pergunta_id)}
+                      </div>
+                      <div className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${resposta.resposta === "sim" || resposta.resposta === true ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"}`}>
+                        {resposta.resposta === "sim" || resposta.resposta === true ? "SIM" : "NÃO"}
+                      </div>
+                      {resposta.observacao && (
+                        <div className="mt-2 text-sm text-gray-700 bg-gray-50 p-2 rounded">
+                          <strong>Observações:</strong> {resposta.observacao}
+                        </div>
+                      )}
+                    </div>
+                  ))
               ) : (
                 <div className="text-gray-500">Nenhuma resposta encontrada</div>
               )}
@@ -1227,8 +1337,7 @@ export default function PropostasPage() {
       return (
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-blue-500" />
+            <CardTitle>
               {titulo}
             </CardTitle>
           </CardHeader>
@@ -1242,8 +1351,7 @@ export default function PropostasPage() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5 text-blue-500" />
+          <CardTitle>
             {titulo}
           </CardTitle>
         </CardHeader>
@@ -1366,12 +1474,9 @@ export default function PropostasPage() {
               <h3 className="text-sm font-bold text-gray-600 uppercase tracking-wider font-sans">Total</h3>
               <div className="text-3xl font-bold text-[#168979] mt-2">{propostas.length}</div>
             </div>
-            <div className="w-14 h-14 bg-gray-100 rounded-lg flex items-center justify-center">
-              <FileText className="h-6 w-6 text-gray-700" />
-            </div>
           </div>
           <div className="pb-6 px-6">
-            <p className="text-xs text-gray-500 font-medium">Propostas</p>
+            <p className="text-xs text-gray-500 font-medium">Total de propostas</p>
           </div>
         </div>
         <div className="bg-gradient-to-br from-white to-gray-50 border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 rounded-lg">
@@ -1380,12 +1485,9 @@ export default function PropostasPage() {
               <h3 className="text-sm font-bold text-gray-600 uppercase tracking-wider font-sans">Aguardando</h3>
               <div className="text-3xl font-bold text-[#168979] mt-2">{propostas.filter((p) => p.status === "parcial").length}</div>
             </div>
-            <div className="w-14 h-14 bg-gray-100 rounded-lg flex items-center justify-center">
-              <Clock className="h-6 w-6 text-gray-700" />
-            </div>
           </div>
           <div className="pb-6 px-6">
-            <p className="text-xs text-gray-500 font-medium">Validação</p>
+            <p className="text-xs text-gray-500 font-medium">Aguardando validação</p>
           </div>
         </div>
         <div className="bg-gradient-to-br from-white to-gray-50 border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 rounded-lg">
@@ -1394,12 +1496,9 @@ export default function PropostasPage() {
               <h3 className="text-sm font-bold text-gray-600 uppercase tracking-wider font-sans">Análise</h3>
               <div className="text-3xl font-bold text-[#168979] mt-2">{propostas.filter((p) => p.status === "pendente").length}</div>
             </div>
-            <div className="w-14 h-14 bg-gray-100 rounded-lg flex items-center justify-center">
-              <Search className="h-6 w-6 text-gray-700" />
-            </div>
           </div>
           <div className="pb-6 px-6">
-            <p className="text-xs text-gray-500 font-medium">Aguardando</p>
+            <p className="text-xs text-gray-500 font-medium">Em análise</p>
           </div>
         </div>
         <div className="bg-gradient-to-br from-white to-gray-50 border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 rounded-lg">
@@ -1408,12 +1507,9 @@ export default function PropostasPage() {
               <h3 className="text-sm font-bold text-gray-600 uppercase tracking-wider font-sans">Diretos</h3>
               <div className="text-3xl font-bold text-[#168979] mt-2">{propostas.filter((p) => p.origem === "propostas").length}</div>
             </div>
-            <div className="w-14 h-14 bg-gray-100 rounded-lg flex items-center justify-center">
-              <User className="h-6 w-6 text-gray-700" />
-            </div>
           </div>
           <div className="pb-6 px-6">
-            <p className="text-xs text-gray-500 font-medium">Clientes diretos</p>
+            <p className="text-xs text-gray-500 font-medium">Propostas diretas</p>
           </div>
         </div>
         <div className="bg-gradient-to-br from-white to-gray-50 border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 rounded-lg">
@@ -1422,12 +1518,9 @@ export default function PropostasPage() {
               <h3 className="text-sm font-bold text-gray-600 uppercase tracking-wider font-sans">Corretores</h3>
               <div className="text-3xl font-bold text-[#168979] mt-2">{propostas.filter((p) => p.origem === "propostas_corretores").length}</div>
             </div>
-            <div className="w-14 h-14 bg-gray-100 rounded-lg flex items-center justify-center">
-              <UserCheck className="h-6 w-6 text-gray-700" />
-            </div>
           </div>
           <div className="pb-6 px-6">
-            <p className="text-xs text-gray-500 font-medium">Via corretores</p>
+            <p className="text-xs text-gray-500 font-medium">Propostas via corretores</p>
           </div>
         </div>
       </div>
@@ -1463,6 +1556,7 @@ export default function PropostasPage() {
               <option value="pendente">Aguardando Análise</option>
               <option value="aprovada">Aprovada</option>
               <option value="rejeitada">Rejeitada</option>
+              <option value="cancelada">Cancelada</option>
             </select>
           </div>
           <div>
@@ -1691,15 +1785,14 @@ export default function PropostasPage() {
                   {editMode ? (
                     <>
                       <Button
-                        onClick={salvarEdicao}
-                        className="bg-green-600 hover:bg-green-700 text-white"
+                        onClick={(e) => salvarEdicao(e)}
+                        className="bg-green-700 hover:bg-green-800 text-white px-6 py-2 rounded font-medium transition-colors"
                       >
-                        <Save className="h-4 w-4 mr-2" />
                         Salvar
                       </Button>
                       <Button
                         onClick={cancelarEdicao}
-                        variant="outline"
+                        className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-2 rounded font-medium transition-colors border border-gray-300"
                       >
                         Cancelar
                       </Button>
@@ -1708,21 +1801,49 @@ export default function PropostasPage() {
                     <>
                       <Button
                         onClick={iniciarEdicao}
-                        className="bg-orange-600 hover:bg-orange-700 text-white"
+                        className="bg-gray-700 hover:bg-gray-800 text-white px-6 py-2 rounded font-medium transition-colors"
                       >
-                        <Edit className="h-4 w-4 mr-2" />
                         Editar
                       </Button>
                       <Button
                         onClick={() => setShowModalPDF(true)}
                         disabled={generatingPdf}
-                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                        className="bg-[#168979] hover:bg-[#0f6b5f] text-white px-6 py-2 rounded font-medium transition-colors disabled:opacity-50"
                       >
                         {generatingPdf ? "Gerando PDF..." : "Gerar PDF"}
                       </Button>
                     </>
                   )}
-                  <Button onClick={() => setShowModalDetalhes(false)} variant="outline">
+                  {pdfUrlGerado && (
+                    <Button
+                      onClick={() => {
+                        const link = document.createElement('a')
+                        link.href = pdfUrlGerado
+                        link.download = `Proposta_${obterNomeCliente(propostaDetalhada).replace(/[^a-zA-Z0-9]/g, "_")}.pdf`
+                        link.target = '_blank'
+                        link.rel = 'noopener noreferrer'
+                        document.body.appendChild(link)
+                        link.click()
+                        document.body.removeChild(link)
+                      }}
+                      className="bg-green-700 hover:bg-green-800 text-white px-6 py-2 rounded font-medium transition-colors"
+                    >
+                      Baixar PDF
+                    </Button>
+                  )}
+                  <Button
+                    onClick={handleCancelarProposta}
+                    className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded font-medium transition-colors"
+                  >
+                    Cancelar Proposta
+                  </Button>
+                  <Button 
+                    onClick={() => {
+                      setShowModalDetalhes(false)
+                      setPdfUrlGerado(null) // Limpar PDF gerado ao fechar modal
+                    }} 
+                    className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-2 rounded font-medium transition-colors border border-gray-300"
+                  >
                     Fechar
                   </Button>
                 </div>
@@ -2205,25 +2326,6 @@ export default function PropostasPage() {
               </button>
             </div>
           </div>
-        </div>
-      )}
-      {pdfUrlGerado && (
-        <div className="mt-4 text-center">
-          <a
-            href={pdfUrlGerado}
-            target="_blank"
-            rel="noopener noreferrer"
-            download
-            className="inline-block px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
-          >
-            Baixar PDF Gerado
-          </a>
-          <button
-            className="block mt-2 text-xs text-gray-500 underline"
-            onClick={() => setPdfUrlGerado(null)}
-          >
-            Fechar link
-          </button>
         </div>
       )}
     </div>

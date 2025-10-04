@@ -9,11 +9,28 @@ interface PreviewPropostaProps {
 }
 
 export default function PreviewProposta({ proposta }: PreviewPropostaProps) {
+  // Função para obter o texto da marca d'água baseado no status
+  const obterMarcaDagua = (status: string): string => {
+    const marcasDagua = {
+      parcial: "AGUARDANDO VALIDAÇÃO",
+      aguardando_cliente: "AGUARDANDO CLIENTE", 
+      pendente: "EM ANÁLISE",
+      aprovada: "APROVADA",
+      rejeitada: "REJEITADA",
+      cadastrado: "CADASTRADO",
+      cancelada: "CANCELADA"
+    }
+    
+    return marcasDagua[status as keyof typeof marcasDagua] || "PROPOSTA"
+  }
+
   return (
     <div className="space-y-6 relative">
       {/* Marca d'água */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-        <div className="text-gray-200 text-6xl font-bold transform rotate-45 opacity-20">SUJEITO À ANÁLISE</div>
+        <div className="text-gray-200 text-7xl font-black transform rotate-45 opacity-20 text-center leading-none">
+          {obterMarcaDagua(proposta.status)}
+        </div>
       </div>
 
       <div className="relative z-20">

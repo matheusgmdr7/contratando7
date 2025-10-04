@@ -270,16 +270,21 @@ export class PDFService {
       const pages = pdfDoc.getPages()
       const marcaDagua = this.obterMarcaDagua(status)
 
-      // Tamanho maior para "EM ANÁLISE"
-      const fontSize = status === 'pendente' ? 48 : 24
+      // Tamanho padronizado para todas as marcas d'água
+      const fontSize = 64
 
       pages.forEach((page: any) => {
         const { width, height } = page.getSize()
         
+        // Calcular posição centralizada baseada no tamanho do texto
+        const textWidth = marcaDagua.texto.length * (fontSize * 0.6) // Aproximação da largura do texto
+        const x = (width - textWidth) / 2
+        const y = height / 2
+        
         // Adicionar marca d'água no centro da página
         page.drawText(marcaDagua.texto, {
-          x: width / 2 - (fontSize * 3),
-          y: height / 2,
+          x: x,
+          y: y,
           size: fontSize,
           color: rgb(0.8, 0.1, 0.1), // Vermelho
           opacity: 0.4,
@@ -304,7 +309,8 @@ export class PDFService {
       pendente: { texto: "EM ANÁLISE" },
       aprovada: { texto: "APROVADA" },
       rejeitada: { texto: "REJEITADA" },
-      cadastrado: { texto: "CADASTRADO" }
+      cadastrado: { texto: "CADASTRADO" },
+      cancelada: { texto: "CANCELADA" }
     }
 
     return marcasDagua[status as keyof typeof marcasDagua] || { texto: "PROPOSTA" }

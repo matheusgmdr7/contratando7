@@ -634,7 +634,7 @@ export default function NovaPropostaPage() {
       })
       return
     }
-    
+
     console.log("✅ TODOS OS CAMPOS OBRIGATÓRIOS PREENCHIDOS - PROSSEGUINDO COM O ENVIO...")
 
     // Validações específicas
@@ -646,8 +646,8 @@ export default function NovaPropostaPage() {
           maxWidth: '400px'
         }
       })
-      return
-    }
+          return
+        }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(data.email)) {
@@ -708,7 +708,7 @@ export default function NovaPropostaPage() {
           maxWidth: '400px'
         }
       })
-      return
+          return
     }
 
     console.log("✅ TODAS AS VALIDAÇÕES PASSARAM - INICIANDO ENVIO...")
@@ -1093,7 +1093,7 @@ export default function NovaPropostaPage() {
       }
     } catch (error) {
       if (error.name !== 'AbortError') {
-        console.error("Erro ao buscar CEP:", error)
+      console.error("Erro ao buscar CEP:", error)
       }
     }
   }

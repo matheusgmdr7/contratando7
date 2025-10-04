@@ -471,6 +471,11 @@ export default function PDFGenerator({
       // Assinatura
       assinatura: proposta.assinatura || proposta.assinatura_imagem || "",
       
+      // Dados da assinatura digital
+      assinado_em: proposta.assinado_em ? formatarData(proposta.assinado_em) : "",
+      ip_assinatura: proposta.ip_assinatura || "",
+      user_agent: proposta.user_agent || "",
+      
       // Status
       status: proposta.status || "pendente",
     }

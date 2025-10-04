@@ -69,7 +69,7 @@ export async function buscarPropostas(): Promise<PropostaUnificada[]> {
       .map((p) => p.corretor_id)
       .filter((id, index, arr) => arr.indexOf(id) === index) // IDs únicos
 
-    let corretoresData: any[] = []
+    let corretoresData = []
     if (corretoresIds && corretoresIds.length > 0) {
       console.log(`🔍 Buscando dados de ${corretoresIds.length} corretores...`)
 
@@ -283,75 +283,31 @@ export async function buscarQuestionarioSaude(
 }
 
 /**
- * Cancela uma proposta - Nova função específica para cancelamento
+ * Cancela uma proposta - NOVA FUNÇÃO
+ * Atualiza o status para 'cancelada'
  */
 export async function cancelarProposta(id: string, motivo?: string): Promise<boolean> {
   try {
     console.log(`🚫 Cancelando proposta ${id}`)
     
-    // Teste 1: Apenas status (mais simples)
-    console.log("🔍 Teste 1: Apenas status")
-    const { error: error1 } = await supabase
-      .from("propostas")
-      .update({ status: "cancelada" })
-      .eq("id", id)
-
-    if (!error1) {
-      console.log("✅ Proposta cancelada com sucesso (apenas status)")
-      return true
-    }
-
-    console.log("❌ Teste 1 falhou:", error1)
-
-    // Teste 2: Status + motivo_rejeicao
-    console.log("🔍 Teste 2: Status + motivo_rejeicao")
-    const { error: error2 } = await supabase
-      .from("propostas")
-      .update({ 
-        status: "cancelada",
-        motivo_rejeicao: motivo || "Cancelada pelo administrador"
-      })
-      .eq("id", id)
-
-    if (!error2) {
-      console.log("✅ Proposta cancelada com sucesso (status + motivo_rejeicao)")
-      return true
-    }
-
-    console.log("❌ Teste 2 falhou:", error2)
-
-    // Teste 3: Colunas específicas de cancelamento
-    console.log("🔍 Teste 3: Colunas específicas de cancelamento")
-    const { error: error3 } = await supabase
-      .from("propostas")
-      .update({ 
-        status: "cancelada",
-        motivo_cancelamento: motivo || "Cancelada pelo administrador",
-        data_cancelamento: new Date().toISOString()
-      })
-      .eq("id", id)
-
-    if (!error3) {
-      console.log("✅ Proposta cancelada com sucesso (colunas específicas)")
-      return true
-    }
-
-    console.log("❌ Teste 3 falhou:", error3)
-    console.error("❌ Todos os testes falharam. Detalhes dos erros:")
-    console.error("Erro 1:", JSON.stringify(error1, null, 2))
-    console.error("Erro 2:", JSON.stringify(error2, null, 2))
-    console.error("Erro 3:", JSON.stringify(error3, null, 2))
+    const sucesso = await atualizarStatusProposta(id, "cancelada", motivo)
     
-    return false
+    if (sucesso) {
+      console.log("✅ Proposta cancelada com sucesso")
+    } else {
+      console.error("❌ Erro ao cancelar proposta")
+    }
+    
+    return sucesso
   } catch (error) {
-    console.error("❌ Erro inesperado ao cancelar proposta:", error)
+    console.error("❌ Erro ao cancelar proposta:", error)
     return false
   }
 }
 
 /**
  * Atualiza o status de uma proposta - CORRIGIDO
- * Agora sempre atualiza na tabela 'propostas'
+ * Tenta atualizar em ambas as tabelas (propostas e propostas_corretores)
  */
 export async function atualizarStatusProposta(id: string, status: string, motivo?: string): Promise<boolean> {
   try {
@@ -363,6 +319,12 @@ export async function atualizarStatusProposta(id: string, status: string, motivo
       motivo_rejeicao: motivo || null,
     }
 
+    // Usar o status diretamente (assumindo que 'cancelada' foi adicionado à constraint)
+    // Se necessário, podemos mapear 'cancelada' para 'rejeitada' como fallback
+    if (status === 'cancelada') {
+      dadosAtualizacao.status = 'cancelada'
+    }
+
     // Tentar adicionar updated_at se a coluna existir
     try {
       dadosAtualizacao.updated_at = new Date().toISOString()
@@ -370,37 +332,62 @@ export async function atualizarStatusProposta(id: string, status: string, motivo
       console.warn("⚠️ Campo updated_at pode não existir, continuando sem ele")
     }
 
-    const { error } = await supabase.from("propostas").update(dadosAtualizacao).eq("id", id)
+    // Primeiro, tentar na tabela 'propostas'
+    console.log("🔄 Tentando atualizar na tabela 'propostas'...")
+    const { error: errorPropostas } = await supabase.from("propostas").update(dadosAtualizacao).eq("id", id)
 
-    if (error) {
-      console.error("❌ Erro ao atualizar status:", error)
-
-      // Se falhar com updated_at, tentar sem ele
-      if (error.message?.includes("updated_at") || error.message?.includes("atualizado_em")) {
-        console.log("🔄 Tentando atualizar sem campo de timestamp...")
-
-        const { error: error2 } = await supabase
-          .from("propostas")
-          .update({
-            status,
-            motivo_rejeicao: motivo || null,
-          })
-          .eq("id", id)
-
-        if (error2) {
-          console.error("❌ Erro na segunda tentativa:", error2)
-          return false
-        }
-
-        console.log("✅ Status atualizado com sucesso (sem timestamp)")
-        return true
-      }
-
-      return false
+    if (!errorPropostas) {
+      console.log("✅ Status atualizado com sucesso na tabela 'propostas'")
+      return true
     }
 
-    console.log("✅ Status atualizado com sucesso")
-    return true
+    console.log("⚠️ Falha na tabela 'propostas', tentando na tabela 'propostas_corretores'...")
+    console.error("❌ Erro na tabela propostas:", errorPropostas)
+
+    // Se falhar na tabela 'propostas', tentar na tabela 'propostas_corretores'
+    const { error: errorCorretores } = await supabase.from("propostas_corretores").update(dadosAtualizacao).eq("id", id)
+
+    if (!errorCorretores) {
+      console.log("✅ Status atualizado com sucesso na tabela 'propostas_corretores'")
+      return true
+    }
+
+    console.error("❌ Erro na tabela propostas_corretores:", errorCorretores)
+
+    // Se falhar com updated_at, tentar sem ele em ambas as tabelas
+    console.log("🔄 Tentando atualizar sem campo de timestamp...")
+    
+    const dadosSemTimestamp: any = {
+      status: status, // Usar o status diretamente
+      motivo_rejeicao: motivo || null,
+    }
+
+    // Tentar na tabela 'propostas' sem timestamp
+    const { error: errorPropostasSemTimestamp } = await supabase
+      .from("propostas")
+      .update(dadosSemTimestamp)
+      .eq("id", id)
+
+    if (!errorPropostasSemTimestamp) {
+      console.log("✅ Status atualizado com sucesso na tabela 'propostas' (sem timestamp)")
+      return true
+    }
+
+    // Tentar na tabela 'propostas_corretores' sem timestamp
+    const { error: errorCorretoresSemTimestamp } = await supabase
+      .from("propostas_corretores")
+      .update(dadosSemTimestamp)
+      .eq("id", id)
+
+    if (!errorCorretoresSemTimestamp) {
+      console.log("✅ Status atualizado com sucesso na tabela 'propostas_corretores' (sem timestamp)")
+      return true
+    }
+
+    console.error("❌ Falha em ambas as tabelas com e sem timestamp")
+    console.error("❌ Erro propostas (sem timestamp):", errorPropostasSemTimestamp)
+    console.error("❌ Erro corretores (sem timestamp):", errorCorretoresSemTimestamp)
+    return false
   } catch (error) {
     console.error("❌ Erro ao atualizar status da proposta:", error)
     return false
