@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Eye, CheckCircle, XCircle, Search, Filter, RefreshCw, Heart } from "lucide-react"
+import { Eye, CheckCircle, XCircle, Search, Filter, RefreshCw, Heart, Clock } from "lucide-react"
 import { formatarMoeda } from "@/utils/formatters"
 import { supabase } from "@/lib/supabase"
 
@@ -276,18 +276,55 @@ export default function EmAnalisePage() {
 
   // Função para exibir badge de status (igual à /propostas)
   function getStatusBadge(status: any) {
-    const statusConfig = {
-      parcial: { label: "Aguardando Validação", color: "bg-blue-50 text-blue-700 border border-blue-200" },
-      aguardando_cliente: {
-        label: "Aguardando Cliente",
-        color: "bg-yellow-50 text-yellow-700 border border-yellow-200",
-      },
-      pendente: { label: "Aguardando Análise", color: "bg-amber-50 text-amber-700 border border-amber-200" },
-      aprovada: { label: "Aprovada", color: "bg-green-50 text-green-700 border border-green-200" },
-      rejeitada: { label: "Rejeitada", color: "bg-red-50 text-red-700 border border-red-200" },
+    if (status === "parcial") {
+      return {
+        label: "AGUARDANDO VALIDAÇÃO",
+        color: "bg-gray-100 text-blue-600",
+        icon: Clock
+      }
+    } else if (status === "aguardando_cliente") {
+      return {
+        label: "AGUARDANDO CLIENTE",
+        color: "bg-gray-100 text-amber-600",
+        icon: Clock
+      }
+    } else if (status === "pendente") {
+      return {
+        label: "AGUARDANDO ANÁLISE",
+        color: "bg-gray-100 text-yellow-600",
+        icon: Clock
+      }
+    } else if (status === "aprovada") {
+      return {
+        label: "APROVADA",
+        color: "bg-gray-100 text-green-600",
+        icon: CheckCircle
+      }
+    } else if (status === "rejeitada") {
+      return {
+        label: "REJEITADA",
+        color: "bg-gray-100 text-red-600",
+        icon: XCircle
+      }
+    } else if (status === "cancelada") {
+      return {
+        label: "CANCELADA",
+        color: "bg-gray-100 text-orange-600",
+        icon: XCircle
+      }
+    } else if (status === "cadastrado" || status === "cadastrada") {
+      return {
+        label: "CADASTRADO",
+        color: "bg-gray-100 text-green-600",
+        icon: CheckCircle
+      }
+    } else {
+      return {
+        label: status || "INDEFINIDO",
+        color: "bg-gray-100 text-gray-600",
+        icon: CheckCircle
+      }
     }
-
-    return statusConfig[status as keyof typeof statusConfig] || { label: status, color: "bg-gray-50 text-gray-700 border border-gray-200" }
   }
 
   // Função para exibir badge de origem (igual à /propostas)
@@ -534,8 +571,12 @@ export default function EmAnalisePage() {
                           {origemConfig.label}
                         </span>
                         <span
-                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${statusConfig.color}`}
+                          className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded ${statusConfig.color}`}
                         >
+                          {(() => {
+                            const IconComponent = statusConfig.icon
+                            return <IconComponent className="w-3 h-3" />
+                          })()}
                           {statusConfig.label}
                         </span>
                       </div>

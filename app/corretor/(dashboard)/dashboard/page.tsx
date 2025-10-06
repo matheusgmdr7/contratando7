@@ -34,11 +34,11 @@ const mapearStatusProposta = (status: string) => {
     'aprovado': { label: 'Aprovada', color: 'bg-green-100 text-green-800' },
     'rejeitada': { label: 'Rejeitada', color: 'bg-red-100 text-red-800' },
     'rejeitado': { label: 'Rejeitada', color: 'bg-red-100 text-red-800' },
-    'cadastrado': { label: 'Cadastrada', color: 'bg-gray-100 text-gray-800' },
-    'cadastrada': { label: 'Cadastrada', color: 'bg-gray-100 text-gray-800' }
+    'cadastrado': { label: 'CADASTRADA', color: 'bg-gray-100 text-gray-800' },
+    'cadastrada': { label: 'CADASTRADA', color: 'bg-gray-100 text-gray-800' }
   }
   
-  return statusMap[status?.toLowerCase()] || { label: status || 'Desconhecido', color: 'bg-gray-100 text-gray-800' }
+  return statusMap[status?.toLowerCase() as keyof typeof statusMap] || { label: status || 'Desconhecido', color: 'bg-gray-100 text-gray-800' }
 }
 
 // Função para verificar se status é considerado aprovado (inclui cadastrados)

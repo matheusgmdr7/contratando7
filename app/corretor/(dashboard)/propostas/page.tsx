@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { AlertCircle, Search, FileText, Calendar, User, Phone, Mail, Package, DollarSign, Eye, X, Download } from "lucide-react"
+import { AlertCircle, Search, FileText, Calendar, User, Phone, Mail, Package, DollarSign, Eye, X, Download, Clock, CheckCircle, XCircle } from "lucide-react"
 import { buscarPropostasPorCorretor } from "@/services/propostas-service-unificado"
 import { verificarAutenticacao } from "@/services/auth-corretores-simples"
 import { Spinner } from "@/components/ui/spinner"
@@ -14,27 +14,81 @@ import { useRouter } from "next/navigation"
 
 // Função para mapear status do banco para exibição
 const mapearStatusProposta = (status: string) => {
-  const statusMap = {
-    'parcial': { label: 'Aguardando Validação', color: 'bg-blue-100 text-blue-800' },
-    'aguardando_cliente': { label: 'Email Enviado', color: 'bg-purple-100 text-purple-800' },
-    'aguardando_validacao': { label: 'Aguardando Validação', color: 'bg-blue-100 text-blue-800' },
-    'pendente': { label: 'Em Análise', color: 'bg-yellow-100 text-yellow-800' },
-    'em_analise': { label: 'Em Análise', color: 'bg-yellow-100 text-yellow-800' },
-    'aprovada': { label: 'Aprovada', color: 'bg-green-100 text-green-800' },
-    'aprovado': { label: 'Aprovada', color: 'bg-green-100 text-green-800' },
-    'rejeitada': { label: 'Rejeitada', color: 'bg-red-100 text-red-800' },
-    'rejeitado': { label: 'Rejeitada', color: 'bg-red-100 text-red-800' },
-    'cadastrado': { label: 'Cadastrada', color: 'bg-green-100 text-green-800' },
-    'cadastrada': { label: 'Cadastrada', color: 'bg-green-100 text-green-800' }
-  }
+  const statusLower = status?.toLowerCase()
   
-  return statusMap[status?.toLowerCase()] || { label: status || 'Desconhecido', color: 'bg-gray-100 text-gray-800' }
+  if (statusLower === 'parcial' || statusLower === 'aguardando_validacao') {
+    return {
+      label: 'AGUARDANDO VALIDAÇÃO',
+      color: 'bg-gray-100 text-blue-600',
+      icon: Clock
+    }
+  } else if (statusLower === 'aguardando_cliente') {
+    return {
+      label: 'AGUARDANDO CLIENTE',
+      color: 'bg-gray-100 text-amber-600',
+      icon: Clock
+    }
+  } else if (statusLower === 'pendente' || statusLower === 'em_analise') {
+    return {
+      label: 'AGUARDANDO ANÁLISE',
+      color: 'bg-gray-100 text-yellow-600',
+      icon: Clock
+    }
+  } else if (statusLower === 'aprovada' || statusLower === 'aprovado') {
+    return {
+      label: 'APROVADA',
+      color: 'bg-gray-100 text-green-600',
+      icon: CheckCircle
+    }
+  } else if (statusLower === 'rejeitada' || statusLower === 'rejeitado') {
+    return {
+      label: 'REJEITADA',
+      color: 'bg-gray-100 text-red-600',
+      icon: XCircle
+    }
+  } else if (statusLower === 'cancelada' || statusLower === 'cancelado') {
+    return {
+      label: 'CANCELADA',
+      color: 'bg-gray-100 text-orange-600',
+      icon: XCircle
+    }
+  } else if (statusLower === 'cadastrado' || statusLower === 'cadastrada') {
+    return {
+      label: 'CADASTRADA',
+      color: 'bg-gray-100 text-green-600',
+      icon: CheckCircle
+    }
+  } else {
+    return {
+      label: status || 'DESCONHECIDO',
+      color: 'bg-gray-100 text-gray-600',
+      icon: CheckCircle
+    }
+  }
 }
 
 // Função para verificar se status é considerado aprovado (inclui cadastrados)
 const isStatusAprovado = (status: string): boolean => {
   const statusAprovados = ['aprovada', 'aprovado', 'cadastrado', 'cadastrada']
   return statusAprovados.includes(status?.toLowerCase())
+}
+
+// Função para converter valor monetário para número
+const converterValorMonetario = (valor: any): number => {
+  if (!valor) return 0
+  
+  let valorStr = String(valor)
+  
+  // Se já é um número, retorna diretamente
+  if (!isNaN(Number(valorStr))) {
+    return Number(valorStr)
+  }
+  
+  // Remove "R$", espaços e converte vírgula para ponto
+  valorStr = valorStr.replace(/R\$\s*/g, '').replace(/\./g, '').replace(',', '.')
+  
+  const valorNumerico = Number(valorStr)
+  return isNaN(valorNumerico) ? 0 : valorNumerico
 }
 
 // Função para calcular valor total incluindo dependentes
@@ -44,20 +98,23 @@ const calcularValorTotalComDependentes = (proposta: any): number => {
   // Valor do titular
   const valorTitular = proposta.valor_total || proposta.valor || proposta.valor_proposta || proposta.valor_plano || 0
   if (valorTitular) {
-    const valorNumerico = Number(valorTitular)
-    if (!isNaN(valorNumerico)) {
+    const valorNumerico = converterValorMonetario(valorTitular)
+    if (valorNumerico > 0) {
       total += valorNumerico
+      console.log(`💰 Valor titular para proposta ${proposta.id}:`, valorNumerico)
     }
   }
   
   // Valores dos dependentes
   if (proposta.dependentes_dados && Array.isArray(proposta.dependentes_dados)) {
-    proposta.dependentes_dados.forEach((dep: any) => {
+    console.log(`👥 Dependentes encontrados para proposta ${proposta.id}:`, proposta.dependentes_dados.length)
+    proposta.dependentes_dados.forEach((dep: any, index: number) => {
       const valorDep = dep.valor_individual || dep.valor || dep.valor_plano || 0
       if (valorDep) {
-        const valorDepNumerico = Number(valorDep)
-        if (!isNaN(valorDepNumerico)) {
+        const valorDepNumerico = converterValorMonetario(valorDep)
+        if (valorDepNumerico > 0) {
           total += valorDepNumerico
+          console.log(`💰 Valor dependente ${index + 1} para proposta ${proposta.id}:`, valorDepNumerico)
         }
       }
     })
@@ -65,12 +122,14 @@ const calcularValorTotalComDependentes = (proposta: any): number => {
     try {
       const dependentes = JSON.parse(proposta.dependentes)
       if (Array.isArray(dependentes)) {
-        dependentes.forEach((dep: any) => {
+        console.log(`👥 Dependentes (JSON) encontrados para proposta ${proposta.id}:`, dependentes.length)
+        dependentes.forEach((dep: any, index: number) => {
           const valorDep = dep.valor_individual || dep.valor || dep.valor_plano || 0
           if (valorDep) {
-            const valorDepNumerico = Number(valorDep)
-            if (!isNaN(valorDepNumerico)) {
+            const valorDepNumerico = converterValorMonetario(valorDep)
+            if (valorDepNumerico > 0) {
               total += valorDepNumerico
+              console.log(`💰 Valor dependente ${index + 1} (JSON) para proposta ${proposta.id}:`, valorDepNumerico)
             }
           }
         })
@@ -78,8 +137,11 @@ const calcularValorTotalComDependentes = (proposta: any): number => {
     } catch (error) {
       console.warn('Erro ao parsear dependentes:', error)
     }
+  } else {
+    console.log(`👥 Nenhum dependente encontrado para proposta ${proposta.id}`)
   }
   
+  console.log(`🎯 Valor total calculado para proposta ${proposta.id}:`, total)
   return total
 }
 
@@ -349,8 +411,13 @@ export default function CorretorPropostasPage() {
                       </TableCell>
                       <TableCell>
                         <span
-                          className={`px-2 py-1 rounded corporate-rounded text-xs font-semibold ${mapearStatusProposta(proposta.status).color}`}
+                          className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold ${mapearStatusProposta(proposta.status).color}`}
                         >
+                          {(() => {
+                            const statusInfo = mapearStatusProposta(proposta.status)
+                            const IconComponent = statusInfo.icon
+                            return <IconComponent className="w-3 h-3" />
+                          })()}
                           {mapearStatusProposta(proposta.status).label}
                         </span>
                       </TableCell>
@@ -421,8 +488,13 @@ export default function CorretorPropostasPage() {
                       </div>
                     </div>
                     <span
-                      className={`px-3 py-1 rounded-md text-xs font-semibold whitespace-nowrap ${mapearStatusProposta(proposta.status).color}`}
+                      className={`inline-flex items-center gap-1 px-3 py-1 rounded-md text-xs font-semibold whitespace-nowrap ${mapearStatusProposta(proposta.status).color}`}
                     >
+                      {(() => {
+                        const statusInfo = mapearStatusProposta(proposta.status)
+                        const IconComponent = statusInfo.icon
+                        return <IconComponent className="w-3 h-3" />
+                      })()}
                       {mapearStatusProposta(proposta.status).label}
                     </span>
                   </div>

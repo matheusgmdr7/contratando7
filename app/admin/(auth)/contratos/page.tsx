@@ -199,28 +199,28 @@ export default function ContratosPage() {
   const getStatusBadgeClass = (status) => {
     switch (status) {
       case "ativo":
-        return "bg-green-100 text-green-800"
+        return "bg-gray-100 text-green-600"
       case "pendente":
-        return "bg-yellow-100 text-yellow-800"
+        return "bg-gray-100 text-yellow-600"
       case "cancelado":
-        return "bg-red-100 text-red-800"
+        return "bg-gray-100 text-orange-600"
       case "suspenso":
-        return "bg-orange-100 text-orange-800"
+        return "bg-gray-100 text-orange-600"
       default:
-        return "bg-gray-100 text-gray-800"
+        return "bg-gray-100 text-gray-600"
     }
   }
 
   const getStatusLabel = (status) => {
     switch (status) {
       case "ativo":
-        return "Ativo"
+        return "ATIVO"
       case "pendente":
-        return "Pendente"
+        return "PENDENTE"
       case "cancelado":
-        return "Cancelado"
+        return "CANCELADO"
       case "suspenso":
-        return "Suspenso"
+        return "SUSPENSO"
       default:
         return status
     }

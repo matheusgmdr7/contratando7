@@ -69,7 +69,7 @@ export async function buscarPropostas(): Promise<PropostaUnificada[]> {
       .map((p) => p.corretor_id)
       .filter((id, index, arr) => arr.indexOf(id) === index) // IDs únicos
 
-    let corretoresData = []
+    let corretoresData: any[] = []
     if (corretoresIds && corretoresIds.length > 0) {
       console.log(`🔍 Buscando dados de ${corretoresIds.length} corretores...`)
 
@@ -602,13 +602,48 @@ export async function buscarPropostasPorCorretor(corretorId: string): Promise<Pr
       }
     }
 
+    // Processar dependentes que estão na coluna "dependentes" da tabela "propostas"
+    const propostasComDependentes = (propostas || []).map((proposta) => {
+      console.log(`🔍 Processando dependentes da proposta ${proposta.id}...`)
+      console.log(`📋 Campo dependentes da proposta:`, proposta.dependentes)
+      
+      let dependentes = []
+      
+      try {
+        // Verificar se existe o campo dependentes e se é uma string JSON
+        if (proposta.dependentes && typeof proposta.dependentes === 'string') {
+          console.log(`📝 Campo dependentes é string, fazendo parse...`)
+          dependentes = JSON.parse(proposta.dependentes)
+          console.log(`✅ Parse realizado, ${dependentes.length} dependentes encontrados`)
+        } else if (proposta.dependentes && Array.isArray(proposta.dependentes)) {
+          console.log(`📝 Campo dependentes já é array, ${proposta.dependentes.length} dependentes encontrados`)
+          dependentes = proposta.dependentes
+        } else {
+          console.log(`📝 Campo dependentes vazio ou inválido para proposta ${proposta.id}`)
+        }
+        
+        if (dependentes && dependentes.length > 0) {
+          console.log(`📋 Dados dos dependentes:`, dependentes)
+        }
+      } catch (error) {
+        console.warn(`⚠️ Erro ao processar dependentes da proposta ${proposta.id}:`, error)
+        dependentes = []
+      }
+
+      return {
+        ...proposta,
+        dependentes_dados: dependentes
+      }
+    })
+
     // Processar e padronizar os dados
-    const propostasProcessadas: PropostaUnificada[] = (propostas || []).map((proposta) => {
+    const propostasProcessadas: PropostaUnificada[] = propostasComDependentes.map((proposta) => {
       console.log(`🔍 DEBUG - Dados brutos da proposta ${proposta.id}:`, {
         valor_total: proposta.valor_total,
         valor_mensal: proposta.valor_mensal,
         valor_proposta: proposta.valor_proposta,
         valor: proposta.valor,
+        dependentes_count: proposta.dependentes_dados?.length || 0,
         tipos: {
           valor_total: typeof proposta.valor_total,
           valor_mensal: typeof proposta.valor_mensal,

@@ -499,26 +499,26 @@ export default function CadastradoPage() {
   function obterStatusProposta(proposta: any) {
     if (proposta.status === "cadastrado" || proposta.status === "cadastrada") {
       return {
-        label: "Cadastrado",
-        color: "bg-green-100 text-green-800",
+        label: "CADASTRADO",
+        color: "bg-gray-100 text-green-600",
         icon: CheckCircle
       }
     } else if (proposta.status === "aprovada") {
       return {
-        label: "Aprovado",
-        color: "bg-blue-100 text-blue-800", 
+        label: "APROVADO",
+        color: "bg-gray-100 text-blue-600", 
         icon: CheckCircle
       }
     } else if (proposta.status === "cancelada") {
       return {
-        label: "Cancelada",
-        color: "bg-red-100 text-red-800",
+        label: "CANCELADA",
+        color: "bg-gray-100 text-orange-600",
         icon: X
       }
     } else {
       return {
-        label: proposta.status || "Indefinido",
-        color: "bg-gray-100 text-gray-800",
+        label: proposta.status || "INDEFINIDO",
+        color: "bg-gray-100 text-gray-600",
         icon: CheckCircle
       }
     }

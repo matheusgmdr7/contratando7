@@ -19,7 +19,7 @@ import { downloadPropostaComDocumentos } from "@/services/download-service"
 import { buscarCorretores } from "@/services/corretores-service"
 import { gerarPDFCompleto, gerarPDFSimples } from "@/services/pdf-completo-service"
 import { toast } from "sonner"
-import { ChevronLeft, ChevronRight, Download, Eye, FileText, Heart, Clock, Search, User, UserCheck, Edit, Save } from "lucide-react"
+import { ChevronLeft, ChevronRight, Download, Eye, FileText, Heart, Clock, Search, User, UserCheck, Edit, Save, CheckCircle, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -1125,29 +1125,57 @@ export default function PropostasPage() {
   }
 
   function getStatusBadge(status: any) {
-    const statusConfig = {
-      parcial: { label: "Aguardando Validação", color: "bg-blue-50 text-blue-700 border border-blue-200" },
-      aguardando_cliente: {
-        label: "Aguardando Cliente",
-        color: "bg-yellow-50 text-yellow-700 border border-yellow-200",
-      },
-      pendente: { label: "Aguardando Análise", color: "bg-amber-50 text-amber-700 border border-amber-200" },
-      aprovada: { label: "Aprovada", color: "bg-green-50 text-green-700 border border-green-200" },
-      rejeitada: { label: "Rejeitada", color: "bg-red-50 text-red-700 border border-red-200" },
-      cancelada: { label: "Cancelada", color: "bg-gray-50 text-gray-700 border border-gray-200" },
+    if (status === "parcial") {
+      return {
+        label: "AGUARDANDO VALIDAÇÃO",
+        color: "bg-gray-100 text-blue-600",
+        icon: Clock
+      }
+    } else if (status === "aguardando_cliente") {
+      return {
+        label: "AGUARDANDO CLIENTE",
+        color: "bg-gray-100 text-amber-600",
+        icon: Clock
+      }
+    } else if (status === "pendente") {
+      return {
+        label: "AGUARDANDO ANÁLISE",
+        color: "bg-gray-100 text-yellow-600",
+        icon: Clock
+      }
+    } else if (status === "aprovada") {
+      return {
+        label: "APROVADA",
+        color: "bg-gray-100 text-green-600",
+        icon: CheckCircle
+      }
+    } else if (status === "rejeitada") {
+      return {
+        label: "REJEITADA",
+        color: "bg-gray-100 text-red-600",
+        icon: X
+      }
+    } else if (status === "cancelada") {
+      return {
+        label: "CANCELADA",
+        color: "bg-gray-100 text-orange-600",
+        icon: X
+      }
+    } else if (status === "cadastrado" || status === "cadastrada") {
+      return {
+        label: "CADASTRADO",
+        color: "bg-gray-100 text-green-600",
+        icon: CheckCircle
+      }
+    } else {
+      return {
+        label: status || "INDEFINIDO",
+        color: "bg-gray-100 text-gray-600",
+        icon: CheckCircle
+      }
     }
-
-    return statusConfig[status as keyof typeof statusConfig] || { label: status, color: "bg-gray-50 text-gray-700 border border-gray-200" }
   }
 
-  function getOrigemBadge(origem: any) {
-    const origemConfig = {
-      propostas: { label: "Cliente Direto", color: "bg-slate-50 text-slate-700 border border-slate-200" },
-      propostas_corretores: { label: "Via Corretor", color: "bg-gray-50 text-gray-700 border border-gray-200" },
-    }
-
-    return origemConfig[origem as keyof typeof origemConfig] || { label: origem, color: "bg-gray-50 text-gray-700 border border-gray-200" }
-  }
 
   function obterIdSeguro(proposta: any) {
     if (!proposta || !proposta.id) return "N/A"
@@ -1614,7 +1642,6 @@ export default function PropostasPage() {
             <tbody className="bg-white divide-y divide-gray-200">
               {propostasExibidas.map((proposta) => {
                 const statusConfig = getStatusBadge(proposta.status)
-                const origemConfig = getOrigemBadge(proposta.origem)
                 return (
                   <tr key={`${proposta.origem}-${proposta.id}`} className="hover:bg-gray-50">
                     <td className="px-4 py-4">
@@ -1637,13 +1664,12 @@ export default function PropostasPage() {
                     <td className="px-4 py-4">
                       <div className="space-y-1">
                         <span
-                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${origemConfig.color}`}
+                          className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded ${statusConfig.color}`}
                         >
-                          {origemConfig.label}
-                        </span>
-                        <span
-                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${statusConfig.color}`}
-                        >
+                          {(() => {
+                            const IconComponent = statusConfig.icon
+                            return <IconComponent className="w-3 h-3" />
+                          })()}
                           {statusConfig.label}
                         </span>
                       </div>
@@ -2142,7 +2168,12 @@ export default function PropostasPage() {
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-600">Status</label>
-                            <Badge className={getStatusBadge(propostaDetalhada.status).color}>
+                            <Badge className={`${getStatusBadge(propostaDetalhada.status).color} inline-flex items-center gap-1`}>
+                              {(() => {
+                                const statusInfo = getStatusBadge(propostaDetalhada.status)
+                                const IconComponent = statusInfo.icon
+                                return <IconComponent className="w-3 h-3" />
+                              })()}
                               {getStatusBadge(propostaDetalhada.status).label}
                             </Badge>
                           </div>
