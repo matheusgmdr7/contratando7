@@ -1336,20 +1336,20 @@ export default function PropostasPage() {
                 Array.from(new Map(q.respostas_questionario.map((r: any) => [r.pergunta_id, r])).values())
                   .map((resposta: any, i: any) => (
                     <div key={`${q.id}-${resposta.pergunta_id}-${i}`} className="border-l-4 border-blue-200 pl-4 py-2 mb-2">
-                      <div className="font-medium text-gray-900 mb-1">Pergunta {resposta.pergunta_id}</div>
+                    <div className="font-medium text-gray-900 mb-1">Pergunta {resposta.pergunta_id}</div>
                       <div className="text-sm text-gray-600 mb-2">
                         {resposta.pergunta_texto || resposta.pergunta || obterTextoPergunta(resposta.pergunta_id)}
                       </div>
-                      <div className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${resposta.resposta === "sim" || resposta.resposta === true ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"}`}>
-                        {resposta.resposta === "sim" || resposta.resposta === true ? "SIM" : "NÃO"}
-                      </div>
-                      {resposta.observacao && (
-                        <div className="mt-2 text-sm text-gray-700 bg-gray-50 p-2 rounded">
-                          <strong>Observações:</strong> {resposta.observacao}
-                        </div>
-                      )}
-                    </div>
-                  ))
+                    <div className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${resposta.resposta === "sim" || resposta.resposta === true ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"}`}>
+                {resposta.resposta === "sim" || resposta.resposta === true ? "SIM" : "NÃO"}
+              </div>
+                    {resposta.observacao && (
+                <div className="mt-2 text-sm text-gray-700 bg-gray-50 p-2 rounded">
+                        <strong>Observações:</strong> {resposta.observacao}
+                </div>
+              )}
+            </div>
+                ))
               ) : (
                 <div className="text-gray-500">Nenhuma resposta encontrada</div>
               )}
@@ -1485,12 +1485,12 @@ export default function PropostasPage() {
             <h1 className="text-2xl font-bold text-gray-900 tracking-tight font-sans">Propostas Recebidas</h1>
             <p className="text-gray-600 mt-1 font-medium">Gerencie todas as propostas do sistema</p>
           </div>
-          <button
-            onClick={carregarPropostas}
+        <button
+          onClick={carregarPropostas}
             className="bg-[#168979] hover:bg-[#13786a] text-white font-bold px-6 py-2 btn-corporate shadow-corporate flex items-center gap-2"
-          >
-            Atualizar Lista
-          </button>
+        >
+          Atualizar Lista
+        </button>
         </div>
       </div>
 
@@ -1501,23 +1501,23 @@ export default function PropostasPage() {
             <div>
               <h3 className="text-sm font-bold text-gray-600 uppercase tracking-wider font-sans">Total</h3>
               <div className="text-3xl font-bold text-[#168979] mt-2">{propostas.length}</div>
-            </div>
+        </div>
           </div>
           <div className="pb-6 px-6">
             <p className="text-xs text-gray-500 font-medium">Total de propostas</p>
-          </div>
         </div>
+          </div>
         <div className="bg-gradient-to-br from-white to-gray-50 border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 rounded-lg">
           <div className="flex flex-row items-center justify-between pb-3 pt-6 px-6">
             <div>
               <h3 className="text-sm font-bold text-gray-600 uppercase tracking-wider font-sans">Aguardando</h3>
               <div className="text-3xl font-bold text-[#168979] mt-2">{propostas.filter((p) => p.status === "parcial").length}</div>
-            </div>
+        </div>
           </div>
           <div className="pb-6 px-6">
             <p className="text-xs text-gray-500 font-medium">Aguardando validação</p>
-          </div>
         </div>
+          </div>
         <div className="bg-gradient-to-br from-white to-gray-50 border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 rounded-lg">
           <div className="flex flex-row items-center justify-between pb-3 pt-6 px-6">
             <div>
@@ -1603,7 +1603,7 @@ export default function PropostasPage() {
               ))}
             </select>
           </div>
-        </div>
+          </div>
         </div>
       </div>
 
@@ -1831,13 +1831,13 @@ export default function PropostasPage() {
                       >
                         Editar
                       </Button>
-                      <Button
-                        onClick={() => setShowModalPDF(true)}
-                        disabled={generatingPdf}
+                    <Button
+                    onClick={() => setShowModalPDF(true)}
+                      disabled={generatingPdf}
                         className="bg-[#168979] hover:bg-[#0f6b5f] text-white px-6 py-2 rounded font-medium transition-colors disabled:opacity-50"
-                      >
-                        {generatingPdf ? "Gerando PDF..." : "Gerar PDF"}
-                      </Button>
+                    >
+                    {generatingPdf ? "Gerando PDF..." : "Gerar PDF"}
+                  </Button>
                     </>
                   )}
                   {pdfUrlGerado && (
@@ -1909,7 +1909,7 @@ export default function PropostasPage() {
                                 className="mt-1"
                               />
                             ) : (
-                              <p className="text-gray-900 font-medium">{obterNomeCliente(propostaDetalhada)}</p>
+                            <p className="text-gray-900 font-medium">{obterNomeCliente(propostaDetalhada)}</p>
                             )}
                           </div>
                           <div>
@@ -1922,7 +1922,7 @@ export default function PropostasPage() {
                                 className="mt-1"
                               />
                             ) : (
-                              <p className="text-gray-900">{obterEmailCliente(propostaDetalhada)}</p>
+                            <p className="text-gray-900">{obterEmailCliente(propostaDetalhada)}</p>
                             )}
                           </div>
                           <div>
@@ -1934,7 +1934,7 @@ export default function PropostasPage() {
                                 className="mt-1"
                               />
                             ) : (
-                              <p className="text-gray-900">{obterTelefoneCliente(propostaDetalhada)}</p>
+                            <p className="text-gray-900">{obterTelefoneCliente(propostaDetalhada)}</p>
                             )}
                           </div>
                           <div>
@@ -1946,7 +1946,7 @@ export default function PropostasPage() {
                                 className="mt-1"
                               />
                             ) : (
-                              <p className="text-gray-900">{propostaDetalhada.cpf || "Não informado"}</p>
+                            <p className="text-gray-900">{propostaDetalhada.cpf || "Não informado"}</p>
                             )}
                           </div>
                           <div>
@@ -1958,7 +1958,7 @@ export default function PropostasPage() {
                                 className="mt-1"
                               />
                             ) : (
-                              <p className="text-gray-900">{propostaDetalhada.rg || "Não informado"}</p>
+                            <p className="text-gray-900">{propostaDetalhada.rg || "Não informado"}</p>
                             )}
                           </div>
                           <div>
@@ -1970,7 +1970,7 @@ export default function PropostasPage() {
                                 className="mt-1"
                               />
                             ) : (
-                              <p className="text-gray-900">{propostaDetalhada.orgao_emissor || propostaDetalhada.orgao_expedidor || "Não informado"}</p>
+                            <p className="text-gray-900">{propostaDetalhada.orgao_emissor || propostaDetalhada.orgao_expedidor || "Não informado"}</p>
                             )}
                           </div>
                           <div>
@@ -1982,7 +1982,7 @@ export default function PropostasPage() {
                                 className="mt-1"
                               />
                             ) : (
-                              <p className="text-gray-900">{propostaDetalhada.cns || propostaDetalhada.cns_cliente || "Não informado"}</p>
+                            <p className="text-gray-900">{propostaDetalhada.cns || propostaDetalhada.cns_cliente || "Não informado"}</p>
                             )}
                           </div>
                           <div>
@@ -1995,11 +1995,11 @@ export default function PropostasPage() {
                                 className="mt-1"
                               />
                             ) : (
-                              <p className="text-gray-900">
-                                {propostaDetalhada.data_nascimento
-                                  ? formatarDataSegura(propostaDetalhada.data_nascimento)
-                                  : "Não informado"}
-                              </p>
+                            <p className="text-gray-900">
+                              {propostaDetalhada.data_nascimento
+                                ? formatarDataSegura(propostaDetalhada.data_nascimento)
+                                : "Não informado"}
+                            </p>
                             )}
                           </div>
                           <div>
@@ -2028,7 +2028,7 @@ export default function PropostasPage() {
                                 placeholder="Ex: SP, RJ, MG..."
                               />
                             ) : (
-                              <p className="text-gray-900">{propostaDetalhada.uf_nascimento || "Não informado"}</p>
+                            <p className="text-gray-900">{propostaDetalhada.uf_nascimento || "Não informado"}</p>
                             )}
                           </div>
                           <div>
@@ -2040,7 +2040,7 @@ export default function PropostasPage() {
                                 className="mt-1"
                               />
                             ) : (
-                              <p className="text-gray-900">{propostaDetalhada.nome_mae || propostaDetalhada.nome_mae_cliente || "Não informado"}</p>
+                            <p className="text-gray-900">{propostaDetalhada.nome_mae || propostaDetalhada.nome_mae_cliente || "Não informado"}</p>
                             )}
                           </div>
                           <div>

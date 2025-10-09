@@ -70,6 +70,9 @@ const formSchema = z.object({
   acomodacao: z.enum(["Enfermaria", "Apartamento"]),
   sigla_plano: z.string().min(1, "Nome do produto é obrigatório"),
   valor: z.string().min(1, "Valor é obrigatório"),
+  dia_vencimento: z.enum(["10", "20"], {
+    required_error: "Dia de vencimento é obrigatório",
+  }),
 
   // Dependentes
   tem_dependentes: z.boolean().default(false),
@@ -143,6 +146,24 @@ export default function NovaPropostaPage() {
 
   const [dependentesKey, setDependentesKey] = useState(0)
 
+  // Função para calcular data de vencimento
+  const calcularDataVencimento = (diaVencimento: string): string => {
+    const hoje = new Date()
+    const ano = hoje.getFullYear()
+    const mes = hoje.getMonth()
+    const dia = parseInt(diaVencimento)
+    
+    // Criar data de vencimento para o mês atual
+    let dataVencimento = new Date(ano, mes, dia)
+    
+    // Se o dia já passou no mês atual, usar o próximo mês
+    if (dataVencimento <= hoje) {
+      dataVencimento = new Date(ano, mes + 1, dia)
+    }
+    
+    return dataVencimento.toISOString().split('T')[0] // Retorna no formato YYYY-MM-DD
+  }
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -170,6 +191,7 @@ export default function NovaPropostaPage() {
       acomodacao: "Enfermaria",
       sigla_plano: "",
       valor: "",
+      dia_vencimento: "10",
       tem_dependentes: false,
       dependentes: [],
       observacoes: "",
@@ -547,6 +569,7 @@ export default function NovaPropostaPage() {
     if (!data.acomodacao) camposObrigatoriosVazios.push("Acomodação")
     if (!data.sigla_plano?.trim()) camposObrigatoriosVazios.push("Nome do Produto")
     if (!data.valor?.trim()) camposObrigatoriosVazios.push("Valor")
+    if (!data.dia_vencimento) camposObrigatoriosVazios.push("Dia de Vencimento")
     
     // Validar documentos obrigatórios do titular
     if (!documentosUpload.rg_frente) camposObrigatoriosVazios.push("RG (Frente)")
@@ -776,6 +799,8 @@ export default function NovaPropostaPage() {
         status: "parcial",
         observacoes: data.observacoes,
         uf_nascimento: data.uf_nascimento || "",
+        // Calcular data de vencimento baseada no dia selecionado
+        data_vencimento: calcularDataVencimento(data.dia_vencimento),
         idade: idadeCliente,
         // Campos específicos de corretores
         corretor_id: corretor.id,
@@ -1106,7 +1131,7 @@ export default function NovaPropostaPage() {
     } else if (activeTab === "endereco") {
       setActiveTab("plano")
     } else if (activeTab === "plano") {
-      form.trigger(["produto_id", "sigla_plano", "valor"]).then((isValid) => {
+      form.trigger(["produto_id", "sigla_plano", "valor", "dia_vencimento"]).then((isValid) => {
         if (isValid) setActiveTab("dependentes")
       })
     } else if (activeTab === "dependentes") {
@@ -1867,6 +1892,29 @@ export default function NovaPropostaPage() {
                               Valor calculado automaticamente com base na idade e tabela selecionada.
                             </p>
                           )}
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="dia_vencimento"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Dia de Vencimento</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione o dia de vencimento" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="10">Dia 10</SelectItem>
+                              <SelectItem value="20">Dia 20</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormDescription>
+                            Selecione o dia do mês para vencimento do plano
+                          </FormDescription>
+                          <FormMessage />
                         </FormItem>
                       )}
                     />
