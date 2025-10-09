@@ -73,6 +73,7 @@ const formSchema = z.object({
   dia_vencimento: z.enum(["10", "20"], {
     required_error: "Dia de vencimento é obrigatório",
   }),
+  mes_vencimento: z.string().min(1, "Mês de vencimento é obrigatório"),
 
   // Dependentes
   tem_dependentes: z.boolean().default(false),
@@ -147,18 +148,18 @@ export default function NovaPropostaPage() {
   const [dependentesKey, setDependentesKey] = useState(0)
 
   // Função para calcular data de vencimento
-  const calcularDataVencimento = (diaVencimento: string): string => {
+  const calcularDataVencimento = (diaVencimento: string, mesVencimento: string): string => {
     const hoje = new Date()
     const ano = hoje.getFullYear()
-    const mes = hoje.getMonth()
     const dia = parseInt(diaVencimento)
+    const mes = parseInt(mesVencimento) - 1 // JavaScript usa 0-11 para meses
     
-    // Criar data de vencimento para o mês atual
+    // Criar data de vencimento com o mês e dia selecionados
     let dataVencimento = new Date(ano, mes, dia)
     
-    // Se o dia já passou no mês atual, usar o próximo mês
+    // Se a data já passou, usar o próximo ano
     if (dataVencimento <= hoje) {
-      dataVencimento = new Date(ano, mes + 1, dia)
+      dataVencimento = new Date(ano + 1, mes, dia)
     }
     
     return dataVencimento.toISOString().split('T')[0] // Retorna no formato YYYY-MM-DD
@@ -192,6 +193,7 @@ export default function NovaPropostaPage() {
       sigla_plano: "",
       valor: "",
       dia_vencimento: "10",
+      mes_vencimento: "",
       tem_dependentes: false,
       dependentes: [],
       observacoes: "",
@@ -570,6 +572,7 @@ export default function NovaPropostaPage() {
     if (!data.sigla_plano?.trim()) camposObrigatoriosVazios.push("Nome do Produto")
     if (!data.valor?.trim()) camposObrigatoriosVazios.push("Valor")
     if (!data.dia_vencimento) camposObrigatoriosVazios.push("Dia de Vencimento")
+    if (!data.mes_vencimento) camposObrigatoriosVazios.push("Mês de Vencimento")
     
     // Validar documentos obrigatórios do titular
     if (!documentosUpload.rg_frente) camposObrigatoriosVazios.push("RG (Frente)")
@@ -799,8 +802,8 @@ export default function NovaPropostaPage() {
         status: "parcial",
         observacoes: data.observacoes,
         uf_nascimento: data.uf_nascimento || "",
-        // Calcular data de vencimento baseada no dia selecionado
-        data_vencimento: calcularDataVencimento(data.dia_vencimento),
+        // Calcular data de vencimento baseada no dia e mês selecionados
+        data_vencimento: calcularDataVencimento(data.dia_vencimento, data.mes_vencimento),
         idade: idadeCliente,
         // Campos específicos de corretores
         corretor_id: corretor.id,
@@ -1131,7 +1134,7 @@ export default function NovaPropostaPage() {
     } else if (activeTab === "endereco") {
       setActiveTab("plano")
     } else if (activeTab === "plano") {
-      form.trigger(["produto_id", "sigla_plano", "valor", "dia_vencimento"]).then((isValid) => {
+      form.trigger(["produto_id", "sigla_plano", "valor", "dia_vencimento", "mes_vencimento"]).then((isValid) => {
         if (isValid) setActiveTab("dependentes")
       })
     } else if (activeTab === "dependentes") {
@@ -1913,6 +1916,39 @@ export default function NovaPropostaPage() {
                           </Select>
                           <FormDescription>
                             Selecione o dia do mês para vencimento do plano
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="mes_vencimento"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Mês de Vencimento</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione o mês de vencimento" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="1">Janeiro</SelectItem>
+                              <SelectItem value="2">Fevereiro</SelectItem>
+                              <SelectItem value="3">Março</SelectItem>
+                              <SelectItem value="4">Abril</SelectItem>
+                              <SelectItem value="5">Maio</SelectItem>
+                              <SelectItem value="6">Junho</SelectItem>
+                              <SelectItem value="7">Julho</SelectItem>
+                              <SelectItem value="8">Agosto</SelectItem>
+                              <SelectItem value="9">Setembro</SelectItem>
+                              <SelectItem value="10">Outubro</SelectItem>
+                              <SelectItem value="11">Novembro</SelectItem>
+                              <SelectItem value="12">Dezembro</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormDescription>
+                            Selecione o mês para vencimento do plano
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
