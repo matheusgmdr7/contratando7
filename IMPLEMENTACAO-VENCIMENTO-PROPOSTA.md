@@ -65,11 +65,16 @@ const calcularDataVencimento = (diaVencimento: string, mesVencimento: string): s
 ```
 
 ### 4. **Salvamento no Banco de Dados**
-- ✅ Campo `data_vencimento` é calculado automaticamente
-- ✅ Valor é salvo na tabela `propostas`
+- ✅ Campo `dia_vencimento` (INTEGER) - armazena 10 ou 20
+- ✅ Campo `mes_vencimento` (INTEGER) - armazena 1 a 12
+- ✅ Campo `data_vencimento` (DATE) - data completa calculada
+- ✅ Todos salvos na tabela `propostas`
 - ✅ Integração com o serviço `criarProposta` do `propostas-service-unificado`
 
 ```typescript
+// Salvar dia e mês de vencimento selecionados
+dia_vencimento: parseInt(data.dia_vencimento),
+mes_vencimento: parseInt(data.mes_vencimento),
 // Calcular data de vencimento baseada no dia e mês selecionados
 data_vencimento: calcularDataVencimento(data.dia_vencimento, data.mes_vencimento),
 ```
@@ -83,12 +88,38 @@ data_vencimento: calcularDataVencimento(data.dia_vencimento, data.mes_vencimento
 
 ## 📊 **Estrutura do Banco de Dados**
 
-A tabela `propostas` já possui a coluna `data_vencimento`:
+A tabela `propostas` possui as seguintes colunas relacionadas a vencimento:
 
 ```sql
+-- Colunas existentes/adicionadas
 ALTER TABLE propostas 
+ADD COLUMN IF NOT EXISTS dia_vencimento INTEGER,
+ADD COLUMN IF NOT EXISTS mes_vencimento INTEGER,
 ADD COLUMN IF NOT EXISTS data_vencimento DATE;
+
+-- Constraints de validação
+ALTER TABLE propostas 
+ADD CONSTRAINT propostas_dia_vencimento_check 
+CHECK (dia_vencimento IN (10, 20) OR dia_vencimento IS NULL);
+
+ALTER TABLE propostas 
+ADD CONSTRAINT propostas_mes_vencimento_check 
+CHECK (mes_vencimento >= 1 AND mes_vencimento <= 12 OR mes_vencimento IS NULL);
 ```
+
+### **📋 Estrutura Completa:**
+
+| Coluna | Tipo | Valores | Descrição |
+|--------|------|---------|-----------|
+| `dia_vencimento` | INTEGER | 10 ou 20 | Dia selecionado pelo corretor |
+| `mes_vencimento` | INTEGER | 1 a 12 | Mês selecionado pelo corretor |
+| `data_vencimento` | DATE | YYYY-MM-DD | Data completa calculada |
+
+### **🔧 Como Adicionar as Colunas:**
+
+Execute o script SQL: `scripts/adicionar-campos-dia-mes-vencimento.sql`
+
+Veja as instruções detalhadas em: `INSTRUCOES-CAMPOS-DIA-MES-VENCIMENTO.md`
 
 ---
 
