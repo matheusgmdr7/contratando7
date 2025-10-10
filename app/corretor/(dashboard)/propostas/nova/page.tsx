@@ -802,10 +802,7 @@ export default function NovaPropostaPage() {
         status: "parcial",
         observacoes: data.observacoes,
         uf_nascimento: data.uf_nascimento || "",
-        // Salvar dia e mês de vencimento selecionados
-        dia_vencimento: parseInt(data.dia_vencimento),
-        mes_vencimento: parseInt(data.mes_vencimento),
-        // Calcular data de vencimento baseada no dia e mês selecionados
+        // Calcular data de vencimento baseada no dia e mês selecionados (igual ao /admin/cadastrado)
         data_vencimento: calcularDataVencimento(data.dia_vencimento, data.mes_vencimento),
         idade: idadeCliente,
         // Campos específicos de corretores

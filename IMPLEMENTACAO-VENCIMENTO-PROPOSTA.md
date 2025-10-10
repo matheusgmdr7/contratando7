@@ -65,19 +65,17 @@ const calcularDataVencimento = (diaVencimento: string, mesVencimento: string): s
 ```
 
 ### 4. **Salvamento no Banco de Dados**
-- ✅ Campo `dia_vencimento` (INTEGER) - armazena 10 ou 20
-- ✅ Campo `mes_vencimento` (INTEGER) - armazena 1 a 12
 - ✅ Campo `data_vencimento` (DATE) - data completa calculada
-- ✅ Todos salvos na tabela `propostas`
+- ✅ Salvo na tabela `propostas` (mesma coluna usada em `/admin/cadastrado`)
+- ✅ Formato: `"YYYY-MM-DD"` (string ISO 8601)
 - ✅ Integração com o serviço `criarProposta` do `propostas-service-unificado`
 
 ```typescript
-// Salvar dia e mês de vencimento selecionados
-dia_vencimento: parseInt(data.dia_vencimento),
-mes_vencimento: parseInt(data.mes_vencimento),
-// Calcular data de vencimento baseada no dia e mês selecionados
+// Calcular data de vencimento baseada no dia e mês selecionados (igual ao /admin/cadastrado)
 data_vencimento: calcularDataVencimento(data.dia_vencimento, data.mes_vencimento),
 ```
+
+**Nota:** Os campos `dia_vencimento` e `mes_vencimento` são usados apenas na interface para facilitar a seleção. Apenas a `data_vencimento` calculada é salva no banco.
 
 ### 5. **Validação do Formulário**
 - ✅ Ambos os campos incluídos na validação da aba "Plano"
@@ -88,38 +86,24 @@ data_vencimento: calcularDataVencimento(data.dia_vencimento, data.mes_vencimento
 
 ## 📊 **Estrutura do Banco de Dados**
 
-A tabela `propostas` possui as seguintes colunas relacionadas a vencimento:
+A tabela `propostas` **já possui** a coluna `data_vencimento`:
 
 ```sql
--- Colunas existentes/adicionadas
-ALTER TABLE propostas 
-ADD COLUMN IF NOT EXISTS dia_vencimento INTEGER,
-ADD COLUMN IF NOT EXISTS mes_vencimento INTEGER,
-ADD COLUMN IF NOT EXISTS data_vencimento DATE;
-
--- Constraints de validação
-ALTER TABLE propostas 
-ADD CONSTRAINT propostas_dia_vencimento_check 
-CHECK (dia_vencimento IN (10, 20) OR dia_vencimento IS NULL);
-
-ALTER TABLE propostas 
-ADD CONSTRAINT propostas_mes_vencimento_check 
-CHECK (mes_vencimento >= 1 AND mes_vencimento <= 12 OR mes_vencimento IS NULL);
+-- Coluna existente (já criada anteriormente)
+data_vencimento DATE
 ```
 
-### **📋 Estrutura Completa:**
+### **📋 Estrutura:**
 
-| Coluna | Tipo | Valores | Descrição |
+| Coluna | Tipo | Formato | Descrição |
 |--------|------|---------|-----------|
-| `dia_vencimento` | INTEGER | 10 ou 20 | Dia selecionado pelo corretor |
-| `mes_vencimento` | INTEGER | 1 a 12 | Mês selecionado pelo corretor |
-| `data_vencimento` | DATE | YYYY-MM-DD | Data completa calculada |
+| `data_vencimento` | DATE | YYYY-MM-DD | Data completa de vencimento |
 
-### **🔧 Como Adicionar as Colunas:**
+### **✅ Não é necessário executar nenhum script SQL!**
 
-Execute o script SQL: `scripts/adicionar-campos-dia-mes-vencimento.sql`
+A coluna `data_vencimento` já existe e é a **mesma** usada pela função de "Completar Cadastro" em `/admin/cadastrado`.
 
-Veja as instruções detalhadas em: `INSTRUCOES-CAMPOS-DIA-MES-VENCIMENTO.md`
+**Compatibilidade 100%:** Ambas as páginas (corretor e admin) salvam no mesmo lugar e formato.
 
 ---
 
@@ -214,12 +198,14 @@ Veja as instruções detalhadas em: `INSTRUCOES-CAMPOS-DIA-MES-VENCIMENTO.md`
 
 ## 📌 **Observações Importantes**
 
-- ✅ Ambos os campos são **obrigatórios** para criar uma nova proposta
+- ✅ Ambos os campos (dia e mês) são **obrigatórios** na interface
 - ✅ A data é calculada **automaticamente** com base no dia e mês selecionados
 - ✅ Se a data já passou no ano atual, o sistema usa o **próximo ano**
-- ✅ O formato salvo no banco é **YYYY-MM-DD** (ISO 8601)
-- ✅ Compatível com a estrutura existente da tabela `propostas`
+- ✅ O formato salvo no banco é **"YYYY-MM-DD"** (ISO 8601)
+- ✅ **Usa a mesma coluna** `data_vencimento` que `/admin/cadastrado`
+- ✅ **Não requer alterações no banco de dados** - coluna já existe
 - ✅ Meses são apresentados por extenso (Janeiro, Fevereiro, etc.) para melhor UX
+- ✅ Dia e mês são campos apenas da interface (não salvos separadamente)
 
 ---
 
