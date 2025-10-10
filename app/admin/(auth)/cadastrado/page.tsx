@@ -360,6 +360,12 @@ export default function CadastradoPage() {
 
   function abrirModalCadastro(proposta: any) {
     setPropostaCadastro(proposta)
+    // Pré-preencher data de vencimento se já existir na proposta
+    if (proposta.data_vencimento) {
+      setDataVencimento(proposta.data_vencimento)
+    } else {
+      setDataVencimento("")
+    }
     setShowModalCadastro(true)
   }
 
@@ -1237,6 +1243,11 @@ export default function CadastradoPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Data de Vencimento <span className="text-red-500">*</span>
                 </label>
+                {propostaCadastro.data_vencimento && (
+                  <div className="mb-2 p-2 bg-blue-50 border border-blue-200 rounded text-sm text-blue-700">
+                    ℹ️ Data preenchida na proposta. Confirme ou ajuste se necessário.
+                  </div>
+                )}
                 <Input
                   type="date"
                   value={dataVencimento}
@@ -1486,6 +1497,17 @@ export default function CadastradoPage() {
                             <label className="block text-sm font-medium text-gray-600">Acomodação</label>
                             <p className="text-gray-900">{propostaDetalhada.acomodacao || "Não informado"}</p>
                           </div>
+                          {propostaDetalhada.data_vencimento && (
+                            <div>
+                              <label className="block text-sm font-medium text-gray-600">Data de Vencimento</label>
+                              <p className="text-gray-900 font-medium">
+                                {formatarDataSegura(propostaDetalhada.data_vencimento) || "Não informado"}
+                              </p>
+                              <p className="text-xs text-blue-600 mt-1">
+                                ✓ Preenchida na proposta
+                              </p>
+                            </div>
+                          )}
                           <div>
                             <label className="block text-sm font-medium text-gray-600">Valor Mensal Total</label>
                             <p className="text-2xl font-bold text-green-600">
